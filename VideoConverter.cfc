@@ -175,7 +175,7 @@
 	</cfscript>	
 </cffunction>
 
-<cffunction name="modifyXml" access="public" output="false" returntype="string" hint="I take Manager XML and add definitions for additional video files.">
+<cffunction name="modifyXml" access="public" output="false" returntype="string" hint="I take Manager XML and add definitions for additional video files." todo="steve">
 	<cfargument name="xml" type="string" required="yes" hint="This XML to be modified.">
 	<cfargument name="SourceVideoFile" type="string" required="yes" hint="The original video file.">
 	<cfargument name="FileTypes" type="string" default="mp4,ogg,swf,webm" hint="A list of file extensions to add as new fields.">
