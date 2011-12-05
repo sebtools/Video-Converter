@@ -26,14 +26,10 @@
 	<cfreturn This>
 </cffunction>
 
-<cffunction name="convertVideo" access="public" returntype="string" output="no" hint="I convert a Video to the requested format. I return the file name" todo="tim">
+<cffunction name="convertVideo" access="public" returntype="string" output="no" hint="I convert a Video to the requested format. I return the file name">
 	<cfargument name="VideoFilePath" type="string" required="yes" hint="The full path to the source video.">
 	<cfargument name="Folder" type="string" required="yes" hint="The folder in which to place the new video.">
 	<cfargument name="Extension" type="string" default="flv" hint="The extension for the new file.">
-	<cfargument name="ffmpegPath" type="string" required="yes" default="#Variables.LibraryPath#ffmpeg.exe">
-	<cfargument name="flvtoolPath" type="string" required="yes" default="#variables.LibraryPath#flvtool2.exe">
-	<cfargument name="resultLogPath" type="string" required="yes" default="#variables.VideoLogPath#Output_result.log">
-	<cfargument name="errorLogPath" type="string" required="yes" default="#variables.VideoLogPath#Output_error.log">
 	<cfargument name="writeLogsToFile" type="boolean" required="yes" default="true">
 	
 	<!--- %%TODO: Provide variable bitrates dependent on client bandwidth --->
@@ -71,7 +67,7 @@
 		try {
 			oRuntime = CreateObject("java", "java.lang.Runtime").getRuntime();
 			
-			command = '#arguments.ffmpegPath# -i "#arguments.VideoFilePath#" -g 300 -y -s qvga -map_meta_data #outputFilePath#:#arguments.VideoFilePath# -b:v #bitrate# -b:a #audiobitrate# -r #framerate# -ar 44100 "#outputFilePath#"';
+			command = '#Variables.LibraryPath#ffmpeg.exe -i "#arguments.VideoFilePath#" -g 300 -y -s qvga -map_meta_data #outputFilePath#:#arguments.VideoFilePath# -b:v #bitrate# -b:a #audiobitrate# -r #framerate# -ar 44100 "#outputFilePath#"';
 			
 			process = oRuntime.exec(#command#);
 			sResults.errorLogSuccess = processVideoStream(process.getErrorStream(),arguments.writeLogsToFile);
@@ -87,7 +83,7 @@
 	<!--- Check for converted file. Size > 0 means a successful conversion. --->
 	<cfif FileExists(outputFilePath)>
 		<cfif arguments.Extension EQ "flv">
-			<cfset addMetaData(arguments.flvtoolPath,outputFilePath)>
+			<cfset addMetaData(outputFilePath)>
 		</cfif>
 		<cfset sConvertedFileInfo = GetFileInfo(outputFilePath)>
 		<cfset ConvertedFileSize = sConvertedFileInfo.Size>
@@ -108,7 +104,7 @@
 	<cfreturn Arguments.Args>
 </cffunction>
 
-<cffunction name="generateVideoThumb" access="public" returntype="string" output="no" hint="I generate a Video thumbnail JPEG." todo="tim">
+<cffunction name="generateVideoThumb" access="public" returntype="string" output="no" hint="I generate a Video thumbnail JPEG.">
 	<cfargument name="VideoFilePath" type="string" required="yes" hint="The full path to the video from which a thumbnail image will be created.">
 	<cfargument name="ThumbFolder" type="string" required="yes" hint="The folder in which to place the resulting thumbnail image (Ideally with the same name as the video, but with a different file extension).">
 	
@@ -129,8 +125,8 @@
 		oRuntime = CreateObject("java", "java.lang.Runtime").getRuntime();
 		command = '#Variables.LibraryPath#ffmpeg.exe -i "#Arguments.VideoFilePath#" -r 1 -s qqvga -f image2 -ss 3 -vframes 1 "#Arguments.ThumbFilePath#"';
 		process = oRuntime.exec(#command#);
-		sResults.errorLogSuccess = processVideoStream(process.getErrorStream(), "#Variables.VideoLogPath#errors.log");
-		sResults.resultLogSuccess = processVideoStream(process.getInputStream(), "#Variables.VideoLogPath#errors.log");
+		sResults.errorLogSuccess = processVideoStream(process.getErrorStream());
+		sResults.resultLogSuccess = processVideoStream(process.getInputStream());
 		sResults.exitCode = process.waitFor();
 	}
 	catch(exception e) {
