@@ -30,10 +30,75 @@
 	<cfargument name="VideoFilePath" type="string" required="yes" hint="The full path to the source video.">
 	<cfargument name="Folder" type="string" required="yes" hint="The folder in which to place the new video.">
 	<cfargument name="Extension" type="string" default="flv" hint="The extension for the new file.">
+	<cfargument name="ffmpegPath" type="string" required="yes" default="#Variables.LibraryPath#ffmpeg.exe">
+	<cfargument name="flvtoolPath" type="string" required="yes" default="#variables.LibraryPath#flvtool2.exe">
+	<cfargument name="resultLogPath" type="string" required="yes" default="#variables.VideoLogPath#Output_result.log">
+	<cfargument name="errorLogPath" type="string" required="yes" default="#variables.VideoLogPath#Output_error.log">
+	<cfargument name="writeLogsToFile" type="boolean" required="yes" default="true">
 	
-	<cfset var result = "">
+	<!--- %%TODO: Provide variable bitrates dependent on client bandwidth --->
 	
-	<cfreturn result>
+	<!--- convert the file --->
+	<cfset var oRuntime = "">
+	<cfset var command = "">
+	<cfset var process = "">
+	<cfset var sResults = StructNew()>
+	<cfset var sConvertedFileInfo = StructNew()>
+	<cfset var ConvertedFileSize = 0>
+	<cfset var ConversionSuccessful = true>
+	<cfset var VideoInfo = getVideoInfo(file=arguments.VideoFilePath)>
+	<cfset var bitrate = "64k">
+	<cfset var audiobitrate = "128k">
+	<cfset var framerate = 24>
+	<cfset var outputFilePath = "">
+	<!--- <cfset var audiocodec = VideoInfo.AudioCodec> --->
+
+	<cfset Variables.FileMgr.makeFolder(Arguments.Folder)>
+	<cfset outputFilePath = Variables.FileMgr.getDirectory(arguments.Folder) & ListFirst(ListLast(arguments.VideoFilePath,"/"),".") & "." & arguments.Extension>
+	
+	<!--- value returned in VideoInfo is kb/s --->
+	<cfif StructKeyExists(VideoInfo,"BitRate")>
+		<cfset bitrate = VideoInfo.BitRate & "k">
+	</cfif>
+	<cfif StructKeyExists(VideoInfo,"AudioBitrate")>
+		<cfset audiobitrate = VideoInfo.AudioBitrate & "k">
+	</cfif>
+	<cfif StructKeyExists(VideoInfo,"Framerate")>
+		<cfset framerate = VideoInfo.Framerate>
+	</cfif>
+
+	<cfscript>
+		try {
+			oRuntime = CreateObject("java", "java.lang.Runtime").getRuntime();
+			
+			command = '#arguments.ffmpegPath# -i "#arguments.VideoFilePath#" -g 300 -y -s qvga -map_meta_data #outputFilePath#:#arguments.VideoFilePath# -b:v #bitrate# -b:a #audiobitrate# -r #framerate# -ar 44100 "#outputFilePath#"';
+			
+			process = oRuntime.exec(#command#);
+			sResults.errorLogSuccess = processVideoStream(process.getErrorStream(),arguments.writeLogsToFile);
+			sResults.resultLogSuccess = processVideoStream(process.getInputStream(),arguments.writeLogsToFile);
+			sResults.exitCode = process.waitFor();
+		}
+		catch(exception e) {
+			sResults.status = e;
+		}
+	</cfscript>
+
+
+	<!--- Check for converted file. Size > 0 means a successful conversion. --->
+	<cfif FileExists(outputFilePath)>
+		<cfif arguments.Extension EQ "flv">
+			<cfset addMetaData(arguments.flvtoolPath,outputFilePath)>
+		</cfif>
+		<cfset sConvertedFileInfo = GetFileInfo(outputFilePath)>
+		<cfset ConvertedFileSize = sConvertedFileInfo.Size>
+	</cfif>
+	<cfset ConversionSuccessful = (ConvertedFileSize GT 0)>
+	
+	<cfif NOT ConversionSuccessful>
+		<cfthrow type="VideoConverter" message="The file conversion was unsuccessful. Check the error log for details.">
+	</cfif>
+	
+	<cfreturn ListLast(outputFilePath,"/")>
 </cffunction>
 
 <cffunction name="formatVideos" access="public" returntype="struct" output="no" hint="I reproduce any videos in the needed formats." todo="steve">
@@ -143,18 +208,30 @@
 
 	// get playing time
 	VideoInfo.Duration = REFindNoCase('Duration: \d{2}:\d{2}:([\d\.]){0,2}',ffmpegOut,1,true);
-	VideoInfo.Duration = Mid(ffmpegOut,VideoInfo.duration.pos[1]+10,8);
+	if (VideoInfo.Duration.len[1] GT 0) {
+		VideoInfo.Duration = Mid(ffmpegOut,VideoInfo.duration.pos[1]+10,8);
+	} else {
+		StructDelete(VideoInfo,"Duration");
+	}
 	//VideoInfo.seconds = ListGetAt(VideoInfo.duration,1,':') * 3600;
 	//VideoInfo.seconds = VideoInfo.seconds + ListGetAt(VideoInfo.duration,2,':') * 60;
 	//VideoInfo.seconds = VideoInfo.seconds + ListGetAt(VideoInfo.duration,3,':');
 	
 	// get bitrate
 	VideoInfo.Bitrate = REFindNoCase('bitrate: \d+ kb/s',ffmpegOut,1,true);
-	VideoInfo.Bitrate = Mid(ffmpegOut,VideoInfo.Bitrate.pos[1]+9,VideoInfo.Bitrate.len[1]-14);
+	if (VideoInfo.Bitrate.len[1] GT 0) {
+		VideoInfo.Bitrate = Mid(ffmpegOut,VideoInfo.Bitrate.pos[1]+9,VideoInfo.Bitrate.len[1]-14);
+	} else {
+		StructDelete(VideoInfo,"Bitrate");
+	}
 	
 	//get frame rate
 	VideoInfo.Framerate = REFindNoCase('\d+ tbr',ffmpegOut,1,true);
-	VideoInfo.Framerate = Mid(ffmpegOut,VideoInfo.Framerate.pos[1],VideoInfo.Framerate.len[1]-4);
+	if (VideoInfo.Framerate.len[1] GT 0) {
+		VideoInfo.Framerate = Mid(ffmpegOut,VideoInfo.Framerate.pos[1],VideoInfo.Framerate.len[1]-4);
+	} else {
+		StructDelete(VideoInfo,"Framerate");
+	}
 	
 	// get audio bitrate
 	VideoInfo.AudioBitrate = REFindNoCase('Audio: .+? \d+ kb/s',ffmpegOut,1,true);
@@ -164,7 +241,7 @@
 		VideoInfo.AudioBitrate = ListGetAt(VideoInfo.AudioBitrate,VideoInfo.AudioBitrateLocation);
 		VideoInfo.AudioBitrate = ListGetAt(VideoInfo.AudioBitrate,1," ");
 	} else {
-		VideoInfo.AudioBitrate = 0;
+		StructDelete(VideoInfo,"AudioBitrate");
 	}
 	
 	// get audio codec
@@ -187,14 +264,13 @@
 
 <cffunction name="processVideoStream" access="public" output="false" returntype="boolean" hint="I drain the input/output streams and optionally write the stream to a file. I return true if stream was successfully processed.">
     <cfargument name="in" type="any" required="true" hint="java.io.InputStream object">
-	<cfargument name="sendToFile" type="boolean" hint="Send this video stream to file?">
+	<cfargument name="sendToFile" type="boolean" hint="Send this video stream to file?" default="false">
 	
     <cfset var out = "">
     <cfset var writer = "">
     <cfset var reader = "">
     <cfset var buffered = "">
     <cfset var line = "">
-    <cfset var sendToFile = false>
     <cfset var errorFound = false>
     
     <cfscript>
@@ -272,4 +348,4 @@
 </cfscript>
 </cffunction>
 
-</cfcomponent>
+</cfcomponent> 
