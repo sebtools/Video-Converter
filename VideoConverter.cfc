@@ -6,6 +6,10 @@
 	
 	<cfset Variables.FileMgr = Arguments.FileMgr>
 	
+	<cfif StructKeyExists(Variables.FileMgr,"FileMgr")>
+		<cfset Variables.FileMgr = Variables.FileMgr.FileMgr>
+	</cfif>
+	
 	<cfset Variables.FileMgr.makeFolder(Arguments.LogsFolder)>
 	
 	<cfset Variables.sMe = getMetaData(This)>
@@ -50,7 +54,8 @@
 	<!--- <cfset var audiocodec = VideoInfo.AudioCodec> --->
 
 	<cfset Variables.FileMgr.makeFolder(Arguments.Folder)>
-	<cfset outputFilePath = Variables.FileMgr.getDirectory(arguments.Folder) & ListFirst(ListLast(arguments.VideoFilePath,"/"),".") & "." & arguments.Extension>
+	<cfset outputFilePath = Variables.FileMgr.getDirectory(arguments.Folder) & ListFirst(ListLast(getFileFromPath(arguments.VideoFilePath),"/"),".") & "." & arguments.Extension>
+	<cfset outputFilePath = Variables.FileMgr.createUniqueFileName(outputFilePath)>
 	
 	<!--- value returned in VideoInfo is kb/s --->
 	<cfif StructKeyExists(VideoInfo,"BitRate")>
@@ -64,22 +69,22 @@
 	</cfif>
 
 	<cfscript>
-		try {
-			oRuntime = CreateObject("java", "java.lang.Runtime").getRuntime();
-			
-			command = '#Variables.LibraryPath#ffmpeg.exe -i "#arguments.VideoFilePath#" -g 300 -y -s qvga -map_meta_data #outputFilePath#:#arguments.VideoFilePath# -b:v #bitrate# -b:a #audiobitrate# -r #framerate# -ar 44100 "#outputFilePath#"';
-			
-			process = oRuntime.exec(#command#);
-			sResults.errorLogSuccess = processVideoStream(process.getErrorStream(),arguments.writeLogsToFile);
-			sResults.resultLogSuccess = processVideoStream(process.getInputStream(),arguments.writeLogsToFile);
-			sResults.exitCode = process.waitFor();
-		}
-		catch(exception e) {
-			sResults.status = e;
-		}
+	try {
+		oRuntime = CreateObject("java", "java.lang.Runtime").getRuntime();
+		
+		//command = '#Variables.LibraryPath#ffmpeg.exe -i "#arguments.VideoFilePath#" -g 300 -y -s qvga -map_meta_data "#outputFilePath#:#arguments.VideoFilePath#" -b:v #bitrate# -b:a #audiobitrate# -r #framerate# -ar 44100 "#outputFilePath#"';
+		command = '#Variables.LibraryPath#ffmpeg.exe -i "#arguments.VideoFilePath#" -g 300 -y -s qvga -b:v #bitrate# -b:a #audiobitrate# -r #framerate# -ar 44100 "#outputFilePath#"';
+		
+		process = oRuntime.exec(#command#);
+		sResults.errorLogSuccess = processVideoStream(process.getErrorStream(),arguments.writeLogsToFile);
+		sResults.resultLogSuccess = processVideoStream(process.getInputStream(),arguments.writeLogsToFile);
+		sResults.exitCode = process.waitFor();
+	}
+	catch(exception e) {
+		sResults.status = e;
+	}
 	</cfscript>
-
-
+	
 	<!--- Check for converted file. Size > 0 means a successful conversion. --->
 	<cfif FileExists(outputFilePath)>
 		<cfif arguments.Extension EQ "flv">
@@ -94,7 +99,7 @@
 		<cfthrow type="VideoConverter" message="The file conversion was unsuccessful. Check the error log for details.">
 	</cfif>
 	
-	<cfreturn ListLast(outputFilePath,"/")>
+	<cfreturn outputFilePath>
 </cffunction>
 
 <cffunction name="formatVideos" access="public" returntype="struct" output="no" hint="I reproduce any videos in the needed formats." todo="steve">
@@ -115,7 +120,7 @@
 	<cfset var sResults = StructNew()>
 	<cfset var sImageFileInfo = StructNew()>
 	<cfset var result = "">
-	<cfset var ThumbFileName = ListDeleteAt(Arguments.VideoFilePath,ListLen(Arguments.VideoFilePath,"."),".") & ".jpg">
+	<cfset var ThumbFileName = getFileFromPath(ListDeleteAt(Arguments.VideoFilePath,ListLen(Arguments.VideoFilePath,"."),".") & ".jpg")>
 	
 	<!--- Determine the image path --->
 	<cfset Arguments.ThumbFilePath = Variables.FileMgr.createUniqueFileName(Variables.FileMgr.getFilePath(ThumbFileName,Arguments.ThumbFolder))>
@@ -138,7 +143,7 @@
 	<cfif FileExists(Arguments.ThumbFilePath)>
 		<cfset sImageFileInfo = GetFileInfo(Arguments.ThumbFilePath)>
 		<cfif sImageFileInfo.Size GT 0>
-			<cfset result = getFileFromPath(Arguments.ThumbFilePath)>
+			<cfset result = Arguments.ThumbFilePath>
 		</cfif>
 	</cfif>
 	
@@ -262,37 +267,44 @@
     <cfargument name="in" type="any" required="true" hint="java.io.InputStream object">
 	<cfargument name="sendToFile" type="boolean" hint="Send this video stream to file?" default="false">
 	
-    <cfset var out = "">
-    <cfset var writer = "">
-    <cfset var reader = "">
-    <cfset var buffered = "">
-    <cfset var line = "">
-    <cfset var errorFound = false>
-    
-    <cfscript>
+	<cfset var out = "">
+	<cfset var writer = "">
+	<cfset var reader = "">
+	<cfset var buffered = "">
+	<cfset var line = "">
+	<cfset var errorFound = false>
+	<cfset var aErrors = ArrayNew(1)>
+	
+	<cfscript>
 	if ( Arguments.sendToFile ) {
 		out = CreateObject("java", "java.io.FileOutputStream").init("#variables.VideoLogPath#errors.log");
 		writer = CreateObject("java", "java.io.PrintWriter").init(out);
 	}
-
-    reader = CreateObject("java", "java.io.InputStreamReader").init(Arguments.in);
-    buffered = CreateObject("java", "java.io.BufferedReader").init(reader);
-    line = buffered.readLine();
-    while ( IsDefined("line") ) {
-        if ( Arguments.sendToFile ) {
-            writer.println(line);
-        }
-        line = buffered.readLine();
-    } 
-    if ( Arguments.sendToFile ) {
-       errorFound = writer.checkError();
-       writer.flush();
-       writer.close();
-    }
-    </cfscript>
 	
-    <!--- return true if no errors found. --->
-    <cfreturn (NOT errorFound)>
+	reader = CreateObject("java", "java.io.InputStreamReader").init(Arguments.in);
+	buffered = CreateObject("java", "java.io.BufferedReader").init(reader);
+	line = buffered.readLine();
+	while ( IsDefined("line") ) {
+		if ( Arguments.sendToFile ) {
+			writer.println(line);
+			ArrayAppend(aErrors,line);
+		}
+		line = buffered.readLine();
+	} 
+	if ( Arguments.sendToFile ) {
+		errorFound = writer.checkError();
+		writer.flush();
+		writer.close();
+	}
+	</cfscript>
+	
+	<!---<cfif ArrayLen(aErrors)>
+		<cfdump var="#aErrors#">
+		<cfabort>
+	</cfif>--->
+	
+	<!--- return true if no errors found. --->
+	<cfreturn (NOT errorFound)>
 </cffunction>
 
 <cffunction name="addMetaData" access="private" returntype="void" output="no" hint="I add meta data to a Video.">
