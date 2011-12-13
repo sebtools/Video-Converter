@@ -27,7 +27,7 @@
 </cffunction>
 
 <cffunction name="shouldFormatVideosCreateAllNeededFiles" access="public" returntype="any" output="no"
-	hint="The formatVideos method should create all of the files needed by any video components in the component."
+	hint="The formatVideos method should create all of the files needed by any video files in the component."
 >
 	
 	<cfset fail("This test has not yet been implemented.")>
@@ -48,31 +48,35 @@
 	hint="The getVideoHTML method should use a VIDEO element if any formats used by HTML5 are included."
 >
 	
-	<cfset fail("This test has not yet been implemented.")>
+	<cfset var VideoHTML = Variables.VideoConverter.getVideoHTML(VideoFiles="blah.ogv")>
 	
+	<cfif NOT VideoHTML CONTAINS "<video">
+		<cfset fail("The Video HTML does not contain a video element even though and HTML video type is included.")>
+	</cfif>
+	
+	<cfset VideoHTML = Variables.VideoConverter.getVideoHTML(VideoFiles="blah.swf")>
+	
+	<cfif VideoHTML CONTAINS "<video">
+		<cfset fail("The Video HTML contains a video element even though no HTML video type is included.")>
+	</cfif>
+		
 </cffunction>
 
-<cffunction name="shouldHTMLIncludeObjectElementForMP4" access="public" returntype="any" output="no"
-	hint="The getVideoHTML method should use an OBJECT element if any MP4 files are included."
+<cffunction name="shouldHTMLIncludeObjectElementForSWF" access="public" returntype="any" output="no"
+	hint="The getVideoHTML method should use an OBJECT element if any SWF files are included."
 >
 	
-	<cfset fail("This test has not yet been implemented.")>
+	<cfset var VideoHTML = Variables.VideoConverter.getVideoHTML(VideoFiles="blah.swf")>
 	
-</cffunction>
-
-<cffunction name="shouldHTMLIncludeEmbedElementForSWF" access="public" returntype="any" output="no"
-	hint="The getVideoHTML method should use an Embed element if any SWF files are included."
->
+	<cfif NOT VideoHTML CONTAINS "<object">
+		<cfset fail("The Video HTML does not contain a object element even though and HTML video type is included.")>
+	</cfif>
 	
-	<cfset fail("This test has not yet been implemented.")>
+	<cfset VideoHTML = Variables.VideoConverter.getVideoHTML(VideoFiles="blah.ogg")>
 	
-</cffunction>
-
-<cffunction name="shouldHTMLIncludeFallbackHTMLForNoSWF" access="public" returntype="any" output="no"
-	hint="The getVideoHTML method should use a fallback message if no SWF files are included."
->
-	
-	<cfset fail("This test has not yet been implemented.")>
+	<cfif VideoHTML CONTAINS "<object">
+		<cfset fail("The Video HTML contains a object element even though no HTML video type is included.")>
+	</cfif>
 	
 </cffunction>
 
@@ -334,7 +338,7 @@
 	<cfset var NewFile = Variables.VideoConverter.generateVideoThumb("#Variables.TestPath##Variables.sTestFiles[Arguments.type]#","video_converter,tests")>
 	
 	<cfif Len(NewFile) AND FileExists(NewFile)>
-		<!---<cffile action="delete" file="#NewFile#">--->
+		<cffile action="delete" file="#NewFile#">
 		<cfset assertEquals(ListLast(NewFile,"."),"jpg","The file did not have the appropriate file format.")>
 	<cfelse>
 		<cfset fail("The file was not created.")>
