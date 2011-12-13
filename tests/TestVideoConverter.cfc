@@ -1,4 +1,4 @@
-﻿<cfcomponent extends="com.sebtools.RecordsTester" displayname="Video Converter" output="no">
+﻿<cfcomponent extends="mxunit.framework.TestCase" displayname="Video Converter" output="no">
 
 <!---<cfset onInvoked()>
 
@@ -204,6 +204,8 @@
 	
 	<cfset var ConvertedXml = getConvertedXml()>
 	<cfset var SolvedXml = getSolvedXml()>
+	
+	<cfset shouldModifyXmlReturnValidXml()>
 	
 	<cfset assertEquals(ToString(XmlParse(SolvedXml)),ToString(XmlParse(ConvertedXml)),"modifyXml did not return the correct XML.")>
 	
@@ -673,6 +675,31 @@
 
        <!--- Return in list format --->
        <cfreturn ArrayToList(list1Array, Delim3) />
+</cffunction>
+
+<cffunction name="loadExternalVars" access="private" returntype="void" output="no">
+	<cfargument name="varlist" type="string" required="true">
+	<cfargument name="scope" type="string" default="Application">
+	<cfargument name="skipmissing" type="boolean" default="false">
+	
+	<cfset var varname = "">
+	<cfset var scopestruct = 0>
+	
+	<cfif Left(arguments.scope,1) EQ "." AND Len(arguments.scope) GTE 2>
+		<cfset variables[Right(arguments.scope,Len(arguments.scope)-1)] = Application[Right(arguments.scope,Len(arguments.scope)-1)]>
+		<cfset arguments.scope = "Application#arguments.scope#">
+	</cfif>
+	
+	<cfset scopestruct = StructGet(arguments.scope)>
+	
+	<cfloop index="varname" list="#arguments.varlist#">
+		<cfif StructKeyExists(scopestruct,varname)>
+			<cfset variables[varname] = scopestruct[varname]>
+		<cfelseif NOT arguments.skipmissing>
+			<cfthrow message="#scope#.#varname# is not defined.">
+		</cfif>
+	</cfloop>
+	
 </cffunction>
 
 </cfcomponent>
