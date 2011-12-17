@@ -1,4 +1,4 @@
-﻿<cfcomponent extends="mxunit.framework.TestCase" displayname="Video Converter" output="no">
+<cfcomponent extends="mxunit.framework.TestCase" displayname="Video Converter" output="no">
 
 <!---<cfset onInvoked()>
 
@@ -27,7 +27,7 @@
 </cffunction>
 
 <cffunction name="shouldFormatVideosCreateAllNeededFiles" access="public" returntype="any" output="no"
-	hint="The formatVideos method should create all of the files needed by any video files in the component."
+	hint="The formatVideos method should create all of the files needed by any video components in the component."
 >
 	
 	<cfset fail("This test has not yet been implemented.")>
@@ -48,35 +48,31 @@
 	hint="The getVideoHTML method should use a VIDEO element if any formats used by HTML5 are included."
 >
 	
-	<cfset var VideoHTML = Variables.VideoConverter.getVideoHTML(VideoFiles="blah.ogv")>
+	<cfset fail("This test has not yet been implemented.")>
 	
-	<cfif NOT VideoHTML CONTAINS "<video">
-		<cfset fail("The Video HTML does not contain a video element even though and HTML video type is included.")>
-	</cfif>
-	
-	<cfset VideoHTML = Variables.VideoConverter.getVideoHTML(VideoFiles="blah.swf")>
-	
-	<cfif VideoHTML CONTAINS "<video">
-		<cfset fail("The Video HTML contains a video element even though no HTML video type is included.")>
-	</cfif>
-		
 </cffunction>
 
-<cffunction name="shouldHTMLIncludeObjectElementForSWF" access="public" returntype="any" output="no"
-	hint="The getVideoHTML method should use an OBJECT element if any SWF files are included."
+<cffunction name="shouldHTMLIncludeObjectElementForMP4" access="public" returntype="any" output="no"
+	hint="The getVideoHTML method should use an OBJECT element if any MP4 files are included."
 >
 	
-	<cfset var VideoHTML = Variables.VideoConverter.getVideoHTML(VideoFiles="blah.swf")>
+	<cfset fail("This test has not yet been implemented.")>
 	
-	<cfif NOT VideoHTML CONTAINS "<object">
-		<cfset fail("The Video HTML does not contain a object element even though and HTML video type is included.")>
-	</cfif>
+</cffunction>
+
+<cffunction name="shouldHTMLIncludeEmbedElementForSWF" access="public" returntype="any" output="no"
+	hint="The getVideoHTML method should use an Embed element if any SWF files are included."
+>
 	
-	<cfset VideoHTML = Variables.VideoConverter.getVideoHTML(VideoFiles="blah.ogg")>
+	<cfset fail("This test has not yet been implemented.")>
 	
-	<cfif VideoHTML CONTAINS "<object">
-		<cfset fail("The Video HTML contains a object element even though no HTML video type is included.")>
-	</cfif>
+</cffunction>
+
+<cffunction name="shouldHTMLIncludeFallbackHTMLForNoSWF" access="public" returntype="any" output="no"
+	hint="The getVideoHTML method should use a fallback message if no SWF files are included."
+>
+	
+	<cfset fail("This test has not yet been implemented.")>
 	
 </cffunction>
 
@@ -144,21 +140,19 @@
 				name="VideoMP4"
 				Label="Video (.mp4)"
 				type="file"
-				Accept="video/mp4,video/mpeg,video/mpeg,"
+				Accept="video/mp4,video/mpeg"
 				Extensions="mp4,mpeg,mpg"
 				sebfield="false"
 				sebcolumn="false"
-			/>
-			<field
+			/><field
 				name="VideoOGG"
-				Label="Video (.ogv)"
+				Label="Video (.ogg)"
 				type="file"
 				Accept="application/ogg,video/ogg"
 				Extensions="ogg,ogv"
 				sebfield="false"
 				sebcolumn="false"
-			/>
-			<field
+			/><field
 				name="VideoSWF"
 				Label="Video (.swf)"
 				type="file"
@@ -166,17 +160,15 @@
 				Extensions="swf"
 				sebfield="false"
 				sebcolumn="false"
-			/>
-			<field
-				name="VideoWebM"
+			/><field
+				name="VideoWEBM"
 				Label="Video (.webm)"
 				type="file"
 				Accept="video/webm"
 				Extensions="webm"
 				sebfield="false"
 				sebcolumn="false"
-			/>
-			<field name="VideoWidth" label="Video Width" type="integer" help="The width of the video (in pixels)." required="true" default="320" />
+			/><field name="VideoWidth" label="Video Width" type="integer" help="The width of the video (in pixels)." required="true" default="320" />
 			<field name="VideoHeight" label="Video Height" type="integer" help="The height of the video (in pixels)." required="true" default="240" />
 		</table>
 	</tables>
@@ -338,7 +330,7 @@
 	<cfset var NewFile = Variables.VideoConverter.generateVideoThumb("#Variables.TestPath##Variables.sTestFiles[Arguments.type]#","video_converter,tests")>
 	
 	<cfif Len(NewFile) AND FileExists(NewFile)>
-		<cffile action="delete" file="#NewFile#">
+		<!---<cffile action="delete" file="#NewFile#">--->
 		<cfset assertEquals(ListLast(NewFile,"."),"jpg","The file did not have the appropriate file format.")>
 	<cfelse>
 		<cfset fail("The file was not created.")>
@@ -693,7 +685,7 @@
 		<cfset variables[Right(arguments.scope,Len(arguments.scope)-1)] = Application[Right(arguments.scope,Len(arguments.scope)-1)]>
 		<cfset arguments.scope = "Application#arguments.scope#">
 	</cfif>
-	
+		
 	<cfset scopestruct = StructGet(arguments.scope)>
 	
 	<cfloop index="varname" list="#arguments.varlist#">
