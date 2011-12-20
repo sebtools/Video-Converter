@@ -89,6 +89,7 @@
 	<cfsavecontent variable="result">
 	<tables prefix="test">
 		<table entity="Question" Specials="CreationDate,LastUpdatedDate,Sorter">
+			<field name="RandomField" type="text" />
 			<field
 				name="Video"
 				Label="Video"
@@ -133,6 +134,7 @@
 	<cfsavecontent variable="result">
 	<tables prefix="test">
 		<table entity="Question" Specials="CreationDate,LastUpdatedDate,Sorter">
+			<field name="RandomField" type="text" />
 			<field
 				name="Video"
 				Label="Video"

@@ -365,7 +365,7 @@
 	<cfargument name="file" type="string" required="yes">
 	
 	<cfscript>		
-	var VideoInfo=StructNew();			
+	var VideoInfo=StructNew();
 	var ffmpegOut="";
 	var command = "";
 	var process = "";
@@ -383,11 +383,11 @@
 	VideoInfo.bitrate = 0;	
 
 	if (NOT fileExists(file)) { return VideoInfo; }
-	VideoInfo.fileExists = true;			
+	VideoInfo.fileExists = true;
 	VideoInfo.fileSize = createObject("java", "java.io.File").init("#Arguments.file#").length();
 	if ( VideoInfo.FileSize eq 0) { return VideoInfo; }
 	
-	oRuntime = CreateObject("java", "java.lang.Runtime").getRuntime();	
+	oRuntime = CreateObject("java", "java.lang.Runtime").getRuntime();
 	command = '#Variables.LibraryPath#ffmpeg.exe -i "#Arguments.file#"';
 	process = oRuntime.exec(#command#);
 	stdError = process.getErrorStream();
@@ -457,17 +457,16 @@
 	<cfargument name="FileTypes" type="string" default="mp4,ogg,swf,webm" hint="A list of file extensions to add as new fields.">
 	
 	<cfset var result = "">
-	<cfset var XmlObj = XmlNew()>
-	<cfset var Fields = arrayNew(1)>
-	<cfset var i = "">
-	<cfset var j = "">
+	<cfset var XmlObj = 0>
+	<cfset var ii = 0>
+	<cfset var jj = 0>
 	<cfset var FieldTagPosition = 0>
-	<cfset var AllFileExtensions = "">	
-	<cfset var AllMimeTypes = "">	
-	<cfset var xmlStruct = "">
+	<cfset var AllFileExtensions = "">
+	<cfset var AllMimeTypes = "">
+	<cfset var xTable = 0>
 	
 	<!--- Mime types supported by modifyXml() --->	
-	<cfset var MimeTypes = arrayNew(1)>	
+	<cfset var MimeTypes = ArrayNew(1)>	
 	<cfset MimeTypes[1] = 
 			{
 				extension="avi",
@@ -498,65 +497,60 @@
 				extension="webm",
 				type="video/webm"
 			}>
-
-	<cfif isXml(Arguments.xml)>
-		<cfset XmlObj = XMLParse(Arguments.xml)>
-		
-		<!--- field tag can be present anywhere in the XML --->
-		<cfset Fields = XmlSearch(XmlObj, "//field")>			
-		
-		<cfif ArrayLen(Fields)>			
-			
-			<cfset xmlStruct = Fields[1].xmlParent>
-
-			<!--- Xpath expression to calculate the position of the field tag with attribute 'name' same as arguments.SourceVideoFile
-				If not found returns 1, so that a new element <field Name='SourceVideoFile'> is inserted
-		 	--->
-			<cfset FieldTagPosition =  XmlSearch(XmlObj,"count(//field[@name='#Arguments.SourceVideoFile#']/preceding-sibling::*)+1")>			
-			
-			
-			<!--- insert new field tag <field name="SourceVideoFile" Label="SourceVideoFile"> --->
-			<cfif FieldTagPosition eq 1 and Fields[1].XmlAttributes["name"] neq Arguments.SourceVideoFile>
-				<cfset arrayInsertAt(xmlStruct.XmlChildren,FieldTagPosition,XmlElemNew(XmlObj,"field"))>	
-				<cfset xmlStruct.XmlChildren[FieldTagPosition].XmlAttributes = {	
-						"name"	= "#Arguments.SourceVideoFile#",					
-						"Label" = "#Arguments.SourceVideoFile#",
-						"type" = "file"
-					} >
-			</cfif>		
-			
-			<cfloop list="#Arguments.FileTypes#" index="i">				
-				<cfset FieldTagPosition = FieldTagPosition + 1>
-				<cfset FileExtension = "">
-				<cfloop from="1" to =#ArrayLen(MimeTypes)# index="j">
-					<cfif listFind(MimeTypes[j].extension,i)>						
-						<cfbreak>
-					</cfif>
-				</cfloop>	
-				<cfset arrayInsertAt(xmlStruct.XmlChildren,FieldTagPosition,XmlElemNew(XmlObj,"field"))>					
-				<cfset xmlStruct.XmlChildren[FieldTagPosition].XmlAttributes = {	
-						"name"	= "#Arguments.SourceVideoFile##UCase(i)#",					
-						"Label" = "#Arguments.SourceVideoFile# (.#i#)",
-						"type" = "file",
-						"Accept" = "#MimeTypes[j].type#",
-						"Extensions" ="#MimeTypes[j].extension#",
-						"sebfield" = "false",
-						"sebcolumn" = "false"
-					} >				
-			</cfloop>
-						
-			<cfloop from=1 to=#arrayLen(MimeTypes)# index="j">
-				<cfset AllFileExtensions = listAppend(AllFileExtensions, MimeTypes[j].extension) >
-				<cfset AllMimeTypes = listAppend(AllMimeTypes, MimeTypes[j].type) >
-			</cfloop>
-			
-			<cfset structInsert(xmlStruct.XmlChildren[1].XmlAttributes,"Accept",AllMimeTypes)>
-			<cfset structInsert(xmlStruct.XmlChildren[1].XmlAttributes,"Extensions",AllFileExtensions)>	
-			<cfset result = toString(XmlObj)>					
-		</cfif>
-	</cfif>		
 	
-
+	<cfif NOT isXml(Arguments.xml)>
+		<cfthrow message="The xml argument of modifyXml must be a valid string" type="VideoConverter">
+	</cfif>
+	
+	<cfset XmlObj = XmlParse(Arguments.xml)>
+	
+	<cfset axSourceField = XmlSearch(XmlObj, "//field[@name='#Arguments.SourceVideoFile#']")>
+	
+	<cfif NOT ArrayLen(axSourceField)>
+		<cfthrow message="The field '#Arguments.SourceVideoFile#' was not found in the XML. Add the field and try again." type="VideoConverter">
+	</cfif>
+	
+	<cfset xTable = axSourceField[1].XmlParent>
+	
+	<!--- Xpath expression to calculate the position of the field tag with attribute 'name' same as arguments.SourceVideoFile
+		If not found returns 1, so that a new element <field Name='SourceVideoFile'> is inserted
+ 	--->
+	<cfset FieldTagPosition =  XmlSearch(XmlObj,"count(//field[@name='#Arguments.SourceVideoFile#']/preceding-sibling::*)+1")>
+	
+	<cfloop list="#Arguments.FileTypes#" index="ii">
+		<cfset FieldTagPosition = FieldTagPosition + 1>
+		<cfset FileExtension = "">
+		<cfloop from="1" to="#ArrayLen(MimeTypes)#" index="jj">
+			<cfif ListFind(MimeTypes[jj].extension,ii)>
+				<cfbreak>
+			</cfif>
+		</cfloop>
+		<cfset ArrayInsertAt(xTable.XmlChildren,FieldTagPosition,XmlElemNew(XmlObj,"field"))>
+		<cfset xTable.XmlChildren[FieldTagPosition].XmlAttributes = {
+				"name"	= "#Arguments.SourceVideoFile##UCase(ii)#",
+				"Label" = "#Arguments.SourceVideoFile# (.#ii#)",
+				"type" = "file",
+				"Accept" = "#MimeTypes[jj].type#",
+				"Extensions" ="#MimeTypes[jj].extension#",
+				"sebfield" = "false",
+				"sebcolumn" = "false"
+			} >
+	</cfloop>
+	
+	<!--- Insert "Accept" and "Extensions" attributes to source video field --->
+	<cfloop from="1" to="#ArrayLen(MimeTypes)#" index="jj">
+		<cfset AllFileExtensions = ListAppend(AllFileExtensions, MimeTypes[jj].extension) >
+		<cfset AllMimeTypes = ListAppend(AllMimeTypes, MimeTypes[jj].type) >
+	</cfloop>
+	<cfif NOT StructKeyExists(axSourceField[1].XmlAttributes,"Accept")>
+		<cfset axSourceField[1].XmlAttributes["Accept"] = AllMimeTypes>
+	</cfif>
+	<cfif NOT StructKeyExists(axSourceField[1].XmlAttributes,"Extensions")>
+		<cfset axSourceField[1].XmlAttributes["Extensions"] = AllFileExtensions>
+	</cfif>
+	
+	<cfset result = ToString(XmlObj)>
+	
 	<cfreturn result>
 </cffunction>
 
@@ -635,21 +629,20 @@
 * @author Chris Mellon (mellan@mnr.org)
 * @version 1, February 21, 2002
 */
-    var datetime = 0;
-    
-    if (ArrayLen(Arguments) is 0) {
-        datetime = Now();
-
-    }
-    else {
-        if (IsDate(Arguments[1])) {
-            datetime = Arguments[1];
-        } else {
-            return NULL;
-        }
-    }
-    
-    return DateDiff("s", "January 1 1970 00:00", datetime);
+	var datetime = 0;
+	
+	if (ArrayLen(Arguments) is 0) {
+		datetime = Now();
+	}
+	else {
+		if (IsDate(Arguments[1])) {
+			datetime = Arguments[1];
+		} else {
+			return NULL;
+		}
+	}
+	
+	return DateDiff("s", "January 1 1970 00:00", datetime);
 </cfscript>
 </cffunction>
 <!---
