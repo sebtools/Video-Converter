@@ -28,41 +28,7 @@
 	<cfif NOT FileExists(Variables.FileMgr.getFilePath("results.log",Arguments.LogsFolder))>
 		<cfset Variables.FileMgr.writeFile("results.log","",Arguments.LogsFolder)>
 	</cfif>
-	
-	<!--- ToDo: Move this to its own method --->
-	<!--- Mime types supported by modifyXml() --->	
-	<cfset Variables.MimeTypes = arrayNew(1)>	
-	<cfset Variables.MimeTypes[1] = 
-			{
-				extension="avi",
-				type="video/avi,video/msvideo,video/x-msvideo"
-			}>
-	<cfset Variables.MimeTypes[2] = 
-			{
-				extension="flv",
-				type="video/x-flv"
-			}>
-	<cfset Variables.MimeTypes[3] = 
-			{
-				extension="mp4,mpeg,mpg",
-				type="video/mp4,video/mpeg"
-			}>
-	<cfset Variables.MimeTypes[4] = 
-			{
-				extension="ogg,ogv",
-				type="application/ogg,video/ogg"
-			}>
-	<cfset Variables.MimeTypes[5] = 
-			{
-				extension="swf",
-				type="application/x-shockwave-flash"
-			}>
-	<cfset Variables.MimeTypes[6] = 
-			{
-				extension="webm",
-				type="video/webm"
-			}>
-	
+			 
 	<cfreturn This>
 </cffunction>
 
@@ -497,27 +463,70 @@
 	<cfset var j = "">
 	<cfset var FieldTagPosition = 0>
 	<cfset var AllFileExtensions = "">	
-	<cfset var AllMimeTypes = "">		
+	<cfset var AllMimeTypes = "">	
+	<cfset var xmlStruct = "">
 	
+	<!--- Mime types supported by modifyXml() --->	
+	<cfset var MimeTypes = arrayNew(1)>	
+	<cfset MimeTypes[1] = 
+			{
+				extension="avi",
+				type="video/avi,video/msvideo,video/x-msvideo"
+			}>
+	<cfset MimeTypes[2] = 
+			{
+				extension="flv",
+				type="video/x-flv"
+			}>
+	<cfset MimeTypes[3] = 
+			{
+				extension="mp4,mpeg,mpg",
+				type="video/mp4,video/mpeg"
+			}>
+	<cfset MimeTypes[4] = 
+			{
+				extension="ogg,ogv",
+				type="application/ogg,video/ogg"
+			}>
+	<cfset MimeTypes[5] = 
+			{
+				extension="swf",
+				type="application/x-shockwave-flash"
+			}>
+	<cfset MimeTypes[6] = 
+			{
+				extension="webm",
+				type="video/webm"
+			}>
+
 	<cfif isXml(Arguments.xml)>
 		<cfset XmlObj = XMLParse(Arguments.xml)>
 		
-		<!--- ToDo: Make more generic so that "tables[@prefix]/table[@entity]/" is not assumed. --->
-		
-		<!--- assuming tables tag with attr prefix and table tag with entity attribute are mentioned as mandatory in the dtd --->
-		<cfset Fields = XmlSearch(XmlObj, "/tables[@prefix]/table[@entity]/field")>			
+		<!--- field tag can be present anywhere in the XML --->
+		<cfset Fields = XmlSearch(XmlObj, "//field")>			
 		
 		<cfif ArrayLen(Fields)>		
 		
+			<cfset variables.xmlPath = arrayNew(1)>
+			<cfset _getParentPath(XmlObj,Fields[1])>
+			
+			<!--- xmlstruct would be something like xmlObj.tables[1].table[1] --->
+			<cfloop from="#arrayLen(variables.xmlPath)#" to=1 index="i" step="-1">
+				<cfset xmlStruct = xmlStruct & "." & variables.xmlPath[i]>
+			</cfloop>
+			
+			<cfset xmlStruct = evaluate("xmlObj" & xmlStruct)>
+
 			<!--- Xpath expression to calculate the position of the field tag with attribute 'name' same as arguments.SourceVideoFile
 				If not found returns 1, so that a new element <field Name='SourceVideoFile'> is inserted
 		 	--->
-			<cfset FieldTagPosition =  XmlSearch(XmlObj,"count(//field[@name='#Arguments.SourceVideoFile#']/preceding-sibling::*)+1")>
+			<cfset FieldTagPosition =  XmlSearch(XmlObj,"count(//field[@name='#Arguments.SourceVideoFile#']/preceding-sibling::*)+1")>			
+			
 			
 			<!--- insert new field tag <field name="SourceVideoFile" Label="SourceVideoFile"> --->
 			<cfif FieldTagPosition eq 1 and Fields[1].XmlAttributes["name"] neq Arguments.SourceVideoFile>
-				<cfset arrayInsertAt(XmlObj.tables.table.XmlChildren,FieldTagPosition,XmlElemNew(XmlObj,"field"))>	
-				<cfset XmlObj.tables.table.XmlChildren[FieldTagPosition].XmlAttributes = {	
+				<cfset arrayInsertAt(xmlStruct.XmlChildren,FieldTagPosition,XmlElemNew(XmlObj,"field"))>	
+				<cfset xmlStruct.XmlChildren[FieldTagPosition].XmlAttributes = {	
 						"name"	= "#Arguments.SourceVideoFile#",					
 						"Label" = "#Arguments.SourceVideoFile#",
 						"type" = "file"
@@ -527,37 +536,60 @@
 			<cfloop list="#Arguments.FileTypes#" index="i">				
 				<cfset FieldTagPosition = FieldTagPosition + 1>
 				<cfset FileExtension = "">
-				<cfloop from="1" to =#ArrayLen(Variables.MimeTypes)# index="j">
-					<cfif listFind(Variables.MimeTypes[j].extension,i)>						
+				<cfloop from="1" to =#ArrayLen(MimeTypes)# index="j">
+					<cfif listFind(MimeTypes[j].extension,i)>						
 						<cfbreak>
 					</cfif>
 				</cfloop>	
-				<cfset arrayInsertAt(XmlObj.tables.table.XmlChildren,FieldTagPosition,XmlElemNew(XmlObj,"field"))>					
-				<cfset XmlObj.tables.table.XmlChildren[FieldTagPosition].XmlAttributes = {	
+				<cfset arrayInsertAt(xmlStruct.XmlChildren,FieldTagPosition,XmlElemNew(XmlObj,"field"))>					
+				<cfset xmlStruct.XmlChildren[FieldTagPosition].XmlAttributes = {	
 						"name"	= "#Arguments.SourceVideoFile##UCase(i)#",					
 						"Label" = "#Arguments.SourceVideoFile# (.#i#)",
 						"type" = "file",
-						"Accept" = "#Variables.MimeTypes[j].type#",
-						"Extensions" ="#Variables.MimeTypes[j].extension#",
+						"Accept" = "#MimeTypes[j].type#",
+						"Extensions" ="#MimeTypes[j].extension#",
 						"sebfield" = "false",
 						"sebcolumn" = "false"
 					} >				
 			</cfloop>
 						
-			<cfloop from=1 to=#arrayLen(Variables.MimeTypes)# index="j">
-				<cfset AllFileExtensions = listAppend(AllFileExtensions, Variables.MimeTypes[j].extension) >
-				<cfset AllMimeTypes = listAppend(AllMimeTypes, Variables.MimeTypes[j].type) >
+			<cfloop from=1 to=#arrayLen(MimeTypes)# index="j">
+				<cfset AllFileExtensions = listAppend(AllFileExtensions, MimeTypes[j].extension) >
+				<cfset AllMimeTypes = listAppend(AllMimeTypes, MimeTypes[j].type) >
 			</cfloop>
 			
-			<cfset structInsert(XmlObj.tables.table.XmlChildren[1].XmlAttributes,"Accept",AllMimeTypes)>
-			<cfset structInsert(XmlObj.tables.table.XmlChildren[1].XmlAttributes,"Extensions",AllFileExtensions)>		
-			
+			<cfset structInsert(xmlStruct.XmlChildren[1].XmlAttributes,"Accept",AllMimeTypes)>
+			<cfset structInsert(xmlStruct.XmlChildren[1].XmlAttributes,"Extensions",AllFileExtensions)>	
 			<cfset result = toString(XmlObj)>					
 		</cfif>
 	</cfif>		
 	
 
 	<cfreturn result>
+</cffunction>
+
+<cffunction name="_getParentPath" access="private" output="false" returntype="void" hint="to find full path of the node within the XML">
+	<cfargument name="xmlObj" type="xml" required="true"  hint="XML document">
+	<cfargument name="field" type="xml" required="true" hint="field struct">
+	<cfset var parentNode = arguments.field.xmlParent>
+	<cfset var position = 1>
+	
+	<!--- if root node --->
+	<cfif not structKeyExists(parentNode,"XMLattributes")>			
+		<cfreturn>
+	</cfif>
+
+	<!--- add an attribute to identify the position --->
+	<cfset structInsert(parentNode.xmlAttributes,"search", '1')>
+	
+	<cfset position =  XmlSearch(arguments.XmlObj,"count(//#parentNode.xmlName#[@search='1']/preceding-sibling::*)+1")>
+	
+	<cfset structDelete(parentNode.xmlAttributes,"search")>
+	
+	<cfset arrayAppend(variables.xmlPath,"#parentNode.xmlName#[#position#]") >
+	
+	<!--- recursively call to store parent element name and position until root node is reached --->
+	<cfset _getParentPath(arguments.XmlObj,parentNode)>
 </cffunction>
 
 <cffunction name="processVideoStream" access="public" output="false" returntype="boolean" hint="I drain the input/output streams and optionally write the stream to a file. I return true if stream was successfully processed.">
