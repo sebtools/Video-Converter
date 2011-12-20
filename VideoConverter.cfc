@@ -505,17 +505,9 @@
 		<!--- field tag can be present anywhere in the XML --->
 		<cfset Fields = XmlSearch(XmlObj, "//field")>			
 		
-		<cfif ArrayLen(Fields)>		
-		
-			<cfset variables.xmlPath = arrayNew(1)>
-			<cfset _getParentPath(XmlObj,Fields[1])>
+		<cfif ArrayLen(Fields)>			
 			
-			<!--- xmlstruct would be something like xmlObj.tables[1].table[1] --->
-			<cfloop from="#arrayLen(variables.xmlPath)#" to=1 index="i" step="-1">
-				<cfset xmlStruct = xmlStruct & "." & variables.xmlPath[i]>
-			</cfloop>
-			
-			<cfset xmlStruct = evaluate("xmlObj" & xmlStruct)>
+			<cfset xmlStruct = Fields[1].xmlParent>
 
 			<!--- Xpath expression to calculate the position of the field tag with attribute 'name' same as arguments.SourceVideoFile
 				If not found returns 1, so that a new element <field Name='SourceVideoFile'> is inserted
@@ -566,30 +558,6 @@
 	
 
 	<cfreturn result>
-</cffunction>
-
-<cffunction name="_getParentPath" access="private" output="false" returntype="void" hint="to find full path of the node within the XML">
-	<cfargument name="xmlObj" type="xml" required="true"  hint="XML document">
-	<cfargument name="field" type="xml" required="true" hint="field struct">
-	<cfset var parentNode = arguments.field.xmlParent>
-	<cfset var position = 1>
-	
-	<!--- if root node --->
-	<cfif not structKeyExists(parentNode,"XMLattributes")>			
-		<cfreturn>
-	</cfif>
-
-	<!--- add an attribute to identify the position --->
-	<cfset structInsert(parentNode.xmlAttributes,"search", '1')>
-	
-	<cfset position =  XmlSearch(arguments.XmlObj,"count(//#parentNode.xmlName#[@search='1']/preceding-sibling::*)+1")>
-	
-	<cfset structDelete(parentNode.xmlAttributes,"search")>
-	
-	<cfset arrayAppend(variables.xmlPath,"#parentNode.xmlName#[#position#]") >
-	
-	<!--- recursively call to store parent element name and position until root node is reached --->
-	<cfset _getParentPath(arguments.XmlObj,parentNode)>
 </cffunction>
 
 <cffunction name="processVideoStream" access="public" output="false" returntype="boolean" hint="I drain the input/output streams and optionally write the stream to a file. I return true if stream was successfully processed.">
