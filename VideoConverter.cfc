@@ -652,5 +652,8 @@
     return DateDiff("s", "January 1 1970 00:00", datetime);
 </cfscript>
 </cffunction>
-
+<!---
+References:
+http://www.frieswiththat.com.au/post.cfm/coldfusion-ffmpeg-video-conversion-plus-thumbnails	
+--->
 </cfcomponent>
