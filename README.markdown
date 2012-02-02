@@ -60,3 +60,8 @@ Note that the video should ideally be available as all of the following formats:
 
 All of which Video Converter can convert videos into.
 
+
+Extra Records.cfc Methods
+-------
+
+Video Converter also has extra functionality for use with Records.cfc which will be documented "soon".
