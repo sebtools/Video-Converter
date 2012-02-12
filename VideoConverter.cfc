@@ -53,6 +53,7 @@
 	<cfset var audiobitrate = "128k">
 	<cfset var framerate = 24>
 	<cfset var outputFilePath = "">
+	<cfset var arch = "">
 	<!--- <cfset var audiocodec = VideoInfo.AudioCodec> --->
 
 	<cfset Variables.FileMgr.makeFolder(Arguments.Folder)>
@@ -69,13 +70,16 @@
 	<cfif StructKeyExists(VideoInfo,"Framerate")>
 		<cfset framerate = VideoInfo.Framerate>
 	</cfif>
+	<cfif StructKeyExists(Server.os,"arch") && FindNoCase('x86',Server.os.arch) >
+		<cfset arch = "x86">
+	</cfif>
 
 	<cfscript>
 	try {
 		oRuntime = CreateObject("java", "java.lang.Runtime").getRuntime();
 		
 		//command = '#Variables.LibraryPath#ffmpeg.exe -i "#arguments.VideoFilePath#" -g 300 -y -s qvga -map_meta_data "#outputFilePath#:#arguments.VideoFilePath#" -b:v #bitrate# -b:a #audiobitrate# -r #framerate# -ar 44100 "#outputFilePath#"';
-		command = '#Variables.LibraryPath#ffmpeg.exe -i "#arguments.VideoFilePath#" -g 300 -y -s qvga -b:v #bitrate# -b:a #audiobitrate# -r #framerate# -ar 44100 "#outputFilePath#"';
+		command = '#Variables.LibraryPath#ffmpeg#arch#.exe -i "#arguments.VideoFilePath#" -g 300 -y -s qvga -b:v #bitrate# -b:a #audiobitrate# -r #framerate# -ar 44100 "#outputFilePath#"';
 		
 		process = oRuntime.exec(#command#);
 		sResults.errorLogSuccess = processVideoStream(process.getErrorStream(),arguments.writeLogsToFile);
@@ -374,6 +378,7 @@
 	var reader = "";
 	var buffered = "";
 	var line = "";
+	var arch = "";
 
 	VideoInfo.fileExists = false;
 	VideoInfo.fileSize = 0;
@@ -386,9 +391,10 @@
 	VideoInfo.fileExists = true;
 	VideoInfo.fileSize = createObject("java", "java.io.File").init("#Arguments.file#").length();
 	if ( VideoInfo.FileSize eq 0) { return VideoInfo; }
+	if(StructKeyExists(Server.os,"arch") && FindNoCase('x86',Server.os.arch)){ arch = "x86";}
 	
 	oRuntime = CreateObject("java", "java.lang.Runtime").getRuntime();
-	command = '#Variables.LibraryPath#ffmpeg.exe -i "#Arguments.file#"';
+	command = '#Variables.LibraryPath#ffmpeg#arch#.exe -i "#Arguments.file#"';
 	process = oRuntime.exec(#command#);
 	stdError = process.getErrorStream();
 	reader = CreateObject("java", "java.io.InputStreamReader").init(stdError);
