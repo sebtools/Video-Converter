@@ -200,37 +200,51 @@
 	<cfreturn result>
 </cffunction>
 
-<cffunction name="getVideoFiles" access="public" returntype="string" output="false" hint="I return a list of files from a query. This is based on the way that modifyXml creates fields for Records.cfc components.">
-	<cfargument name="query" type="query" required="yes" hint="The query holding the video">
-	<cfargument name="FileField" type="string" required="yes" hint="The field in the query representing the video.">
-	<cfargument name="row" type="numeric" default="1">
+<cffunction name="getVideoFileNames" access="private" returntype="string" output="false" hint="I return a list of file fields based on a file name (based on how modifyXml creates fields).">
+	<cfargument name="FileField" type="string" required="no" hint="The field in the query representing the video.">
 	
 	<cfset var result = "">
 	<cfset var format = "">
-	<cfset var cols = Arguments.query.ColumnList>
-	<cfset var col = "">
 	
-	<cfif Arguments.query.RecordCount GTE Arguments.row>
-		<cfloop list="#Variables.VideoFormats#" index="format">
-			<cfset col = "#Arguments.FileField##format#URL">
-			<cfif ListFindNoCase(cols,col) AND Len(Arguments.query[col][row])>
-				<cfset result = ListAppend(result,Arguments.query[col][row])>
-			</cfif>
-		</cfloop>
-	</cfif>
+	<!---<cfset result = ListAppend(result,"#Arguments.FileField#")>--->
+	<!---<cfset result = ListAppend(result,"#Arguments.FileField#URL")>--->
+	
+	<cfloop list="#Variables.VideoFormats#" index="format">
+		<!---<cfset result = ListAppend(result,"#Arguments.FileField##format#")>--->
+		<cfset result = ListAppend(result,"#Arguments.FileField##format#")>
+	</cfloop>
+	
+	<cfreturn result>
+</cffunction>
+
+<cffunction name="getVideoFiles" access="public" returntype="string" output="false" hint="I return a list of files from a query. This is based on the way that modifyXml creates fields for Records.cfc components.">
+	<cfargument name="FileField" type="string" required="yes" hint="The field name of the source video.">
+	<cfargument name="Component" type="any" required="true" hint="The Records component for this video.">
+	<cfargument name="Record" type="any" required="yes" hint="The record for this video.">
+	<cfargument name="row" type="numeric" default="1">
+	
+	<cfset var cols = getVideoFileNames(Arguments.FileField)>
+	<cfset var oRecord = Arguments.Component.RecordObject(Record=Arguments.Record,row=Arguments.row,fields=cols)>
+	<cfset var col = "">
+	<cfset var result = "">
+	
+	<cfloop list="#cols#" index="col">
+		<cfset result = ListAppend(result,oRecord.get("#col#URL"))>
+	</cfloop>
 	
 	<cfreturn result>
 </cffunction>
 
 <cffunction name="getVideoSize" access="public" returntype="struct" output="false" hint="I return a structure with the height and width of the video.">
-	<cfargument name="Component" type="any" required="true" hint="The Records component for this video">
 	<cfargument name="FileField" type="string" required="true" hint="The field representing the video.">
-	<cfargument name="query" type="query" required="false" hint="The query holding the video">
+	<cfargument name="Component" type="any" required="true" hint="The Records component for this video.">
+	<cfargument name="Record" type="any" required="yes" hint="The record for this video.">
 	<cfargument name="row" type="numeric" default="1">
 	
 	<cfset var sResult = StructNew()>
 	<cfset var sFields = Arguments.Component.getFieldsStruct()>
 	<cfset var sField = StructCopy(sFields[Arguments.FileField])>
+	<cfset var oRecord = Arguments.Component.RecordObject(Record=Arguments.Record,row=Arguments.row)>
 	
 	<cfset sResult["width"] = "">
 	<cfset sResult["height"] = "">
@@ -246,8 +260,8 @@
 	<cfif isNumeric(sField.width)>
 		<cfset sResult["width"] = sField.width>
 	<cfelseif StructKeyExists(sFields,sField["width"])>
-		<cfif StructKeyExists(Arguments,"query") AND Arguments.query.RecordCount GTE Arguments.row AND ListFindNoCase(Arguments.query.ColumnList,sField["width"])>
-			<cfset sResult["width"] = Arguments.query[sField["width"]][Arguments.row]>
+		<cfif StructKeyExists(Arguments,"query")>
+			<cfset sResult["width"] = oRecord.get(sField["width"])>
 		<cfelseif StructKeyExists(sFields[sField["width"]],"default")>
 			<cfset sResult["width"] = sFields[sField["width"]]["default"]>
 		</cfif>
@@ -256,8 +270,8 @@
 	<cfif isNumeric(sField.height)>
 		<cfset sResult["height"] = sField.height>
 	<cfelseif StructKeyExists(sFields,sField["height"])>
-		<cfif StructKeyExists(Arguments,"query") AND Arguments.query.RecordCount GTE Arguments.row AND ListFindNoCase(Arguments.query.ColumnList,sField["height"])>
-			<cfset sResult["height"] = Arguments.query[sField["height"]][Arguments.row]>
+		<cfif StructKeyExists(Arguments,"query")>
+			<cfset sResult["height"] = oRecord.get(sField["height"])>
 		<cfelseif StructKeyExists(sFields[sField["height"]],"default")>
 			<cfset sResult["height"] = sFields[sField["height"]]["default"]>
 		</cfif>
@@ -267,9 +281,9 @@
 </cffunction>
 
 <cffunction name="getVideoHTMLForRecords" access="public" returntype="string" output="false" hint="I return the HTML to play the given video.">
-	<cfargument name="Component" type="any" required="yes" hint="The Records component for this video">
-	<cfargument name="query" type="query" required="yes" hint="The query holding the video">
 	<cfargument name="FileField" type="string" required="yes" hint="The field in the query representing the video.">
+	<cfargument name="Component" type="any" required="yes" hint="The Records component for this video">
+	<cfargument name="Record" type="any" required="yes" hint="The record for this video.">
 	<cfargument name="row" type="numeric" default="1">
 	<cfargument name="Title" type="string" default="video">
 	<cfargument name="Controls" type="boolean" default="true">
@@ -284,6 +298,7 @@
 	<cfif isNumeric(sSize["Height"]) AND Val(sSize["Height"])>
 		<cfset Arguments["Height"] = sSize["Height"]>
 	</cfif>
+	
 	<cfreturn getVideoHTML(ArgumentCollection=Arguments)>
 </cffunction>
 
@@ -454,7 +469,7 @@
 	//VideoInfo.AudioCodec = Mid(ffmpegOut,VideoInfo.AudioCodec.pos[1]+7,VideoInfo.AudioCodec.len[1]-8);
 	
 	return VideoInfo;
-	</cfscript>	
+	</cfscript>
 </cffunction>
 
 <cffunction name="modifyXml" access="public" output="false" returntype="string" hint="I take Manager XML and add definitions for additional video files." todo="steve">
@@ -539,7 +554,8 @@
 				"Accept" = "#MimeTypes[jj].type#",
 				"Extensions" ="#MimeTypes[jj].extension#",
 				"sebfield" = "false",
-				"sebcolumn" = "false"
+				"sebcolumn" = "false",
+				"original" = "#Arguments.SourceVideoFile#"
 			} >
 	</cfloop>
 	
@@ -548,6 +564,10 @@
 		<cfset AllFileExtensions = ListAppend(AllFileExtensions, MimeTypes[jj].extension) >
 		<cfset AllMimeTypes = ListAppend(AllMimeTypes, MimeTypes[jj].type) >
 	</cfloop>
+	<cfset axSourceField[1].XmlAttributes["video"] = "true">
+	<cfif NOT StructKeyExists(axSourceField[1].XmlAttributes,"type")>
+		<cfset axSourceField[1].XmlAttributes["type"] = "file">
+	</cfif>
 	<cfif NOT StructKeyExists(axSourceField[1].XmlAttributes,"Accept")>
 		<cfset axSourceField[1].XmlAttributes["Accept"] = AllMimeTypes>
 	</cfif>
