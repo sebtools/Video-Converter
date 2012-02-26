@@ -38,6 +38,14 @@ Video Converter can create a thumbnail from a video using the "generateVideoThum
 * VideoFilePath: The full path to the video from which a thumbnail image will be created.
 * ThumbFolder: The folder in which to place the resulting thumbnail image.
 
+
+Get Video Information
+-------
+
+To get file metadata from a video, use the "getVideoInfo" method with the following arguments:
+
+* file: The full path to the video.
+
 Video Player HTML
 -------
 

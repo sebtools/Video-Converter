@@ -16,6 +16,7 @@
 	
 	<cfset Variables.sTestFiles = {
 		flv = "barsandtone.flv",
+		mov = "barsandtone.mov",
 		mp4 = "barsandtone.mp4",
 		ogg = "barsandtone.ogv",
 		ogv = "barsandtone.ogv",
@@ -417,6 +418,14 @@
 	
 </cffunction>
 
+<cffunction name="shouldConvertVideoConvertAVI2MOV" access="public" returntype="any" output="no"
+	hint="Video conversion should work from AVI to MOV."
+>
+	
+	<cfset runVideoConvertTest("avi","mov")>
+	
+</cffunction>
+
 <cffunction name="shouldConvertVideoConvertAVI2MP4" access="public" returntype="any" output="no"
 	hint="Video conversion should work from AVI to MP4."
 >
@@ -457,6 +466,14 @@
 	
 </cffunction>
 
+<cffunction name="shouldConvertVideoConvertFLV2MOV" access="public" returntype="any" output="no"
+	hint="Video conversion should work from FLV to MOV."
+>
+	
+	<cfset runVideoConvertTest("flv","mov")>
+	
+</cffunction>
+
 <cffunction name="shouldConvertVideoConvertFLV2MP4" access="public" returntype="any" output="no"
 	hint="Video conversion should work from FLV to MP4."
 >
@@ -489,6 +506,54 @@
 	
 </cffunction>
 
+<cffunction name="shouldConvertVideoConvertMOV2AVI" access="public" returntype="any" output="no"
+	hint="Video conversion should work from MOV to AVI."
+>
+	
+	<cfset runVideoConvertTest("mov","avi")>
+	
+</cffunction>
+
+<cffunction name="shouldConvertVideoConvertMOV2FLV" access="public" returntype="any" output="no"
+	hint="Video conversion should work from MOV to FLV."
+>
+	
+	<cfset runVideoConvertTest("mov","flv")>
+	
+</cffunction>
+
+<cffunction name="shouldConvertVideoConvertMOV2MP4" access="public" returntype="any" output="no"
+	hint="Video conversion should work from MOV to MP4."
+>
+	
+	<cfset runVideoConvertTest("mov","mp4")>
+	
+</cffunction>
+
+<cffunction name="shouldConvertVideoConvertMOV2OGG" access="public" returntype="any" output="no"
+	hint="Video conversion should work from MOV to OGG."
+>
+	
+	<cfset runVideoConvertTest("mov","ogv")>
+	
+</cffunction>
+
+<cffunction name="shouldConvertVideoConvertMOV2SWF" access="public" returntype="any" output="no"
+	hint="Video conversion should work from MOV to SWF."
+>
+	
+	<cfset runVideoConvertTest("mov","swf")>
+	
+</cffunction>
+
+<cffunction name="shouldConvertVideoConvertMOV2WEBM" access="public" returntype="any" output="no"
+	hint="Video conversion should work from MOV to WEBM."
+>
+	
+	<cfset runVideoConvertTest("mov","webm")>
+	
+</cffunction>
+
 <cffunction name="shouldConvertVideoConvertMP42AVI" access="public" returntype="any" output="no"
 	hint="Video conversion should work from MP4 to AVI."
 >
@@ -502,6 +567,14 @@
 >
 	
 	<cfset runVideoConvertTest("mp4","flv")>
+	
+</cffunction>
+
+<cffunction name="shouldConvertVideoConvertMP42MOV" access="public" returntype="any" output="no"
+	hint="Video conversion should work from MP4 to MOV."
+>
+	
+	<cfset runVideoConvertTest("mp4","mov")>
 	
 </cffunction>
 
@@ -545,6 +618,14 @@
 	
 </cffunction>
 
+<cffunction name="shouldConvertVideoConvertOGG2MOV" access="public" returntype="any" output="no"
+	hint="Video conversion should work from OGG to MOV."
+>
+	
+	<cfset runVideoConvertTest("ogg","mov")>
+	
+</cffunction>
+
 <cffunction name="shouldConvertVideoConvertOGG2MP4" access="public" returntype="any" output="no"
 	hint="Video conversion should work from OGG to MP4."
 >
@@ -585,6 +666,14 @@
 	
 </cffunction>
 
+<cffunction name="shouldConvertVideoConvertSWF2MOV" access="public" returntype="any" output="no"
+	hint="Video conversion should work from SWF to MOV."
+>
+	
+	<cfset runVideoConvertTest("swf","mov")>
+	
+</cffunction>
+
 <cffunction name="shouldConvertVideoConvertSWF2MP4" access="public" returntype="any" output="no"
 	hint="Video conversion should work from SWF to MP4."
 >
@@ -622,6 +711,14 @@
 >
 	
 	<cfset runVideoConvertTest("webm","flv")>
+	
+</cffunction>
+
+<cffunction name="shouldConvertVideoConvertWEBM2MOV" access="public" returntype="any" output="no"
+	hint="Video conversion should work from WEBM to MOV."
+>
+	
+	<cfset runVideoConvertTest("webm","mov")>
 	
 </cffunction>
 

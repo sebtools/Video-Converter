@@ -116,6 +116,8 @@
 	<cfset var sSources = StructNew()>
 	<cfset var key = "">
 	<cfset var format = "">
+	<cfset var format2 = "">
+	<cfset var fails = 0>
 	
 	<!--- Find all source videos and their related videos --->
 	<cfloop collection="#sFields#" item="key">
@@ -142,19 +144,34 @@
 		</cfif>
 	</cfloop>
 	
-	<cfloop collection="#sSources#" item="key">
-		<cfif StructKeyExists(Arguments.Args,key) AND isSimpleValue(Arguments.Args[key]) AND Len(Arguments.Args[key])>
-			<cfloop list="#sSources[key]#" index="format">
-				<cfset Arguments.Args[format] = getFileFromPath(
-					convertVideo(
-						VideoFilePath = Variables.FileMgr.getFilePath(Arguments.Args[key],sFields[key].Folder),
-						Folder = sFields[format].Folder,
-						Extension = ListFirst(sFields[format].Extensions)
-					)
-				)>
-			</cfloop>
-		</cfif>
-	</cfloop>
+		<cfloop collection="#sSources#" item="key">
+			<cfif StructKeyExists(Arguments.Args,key) AND isSimpleValue(Arguments.Args[key]) AND Len(Arguments.Args[key])>
+				<cfset fails = 0>
+				<cfloop list="#sSources[key]#" index="format">
+					<cftry>
+						<cfset Arguments.Args[format] = getFileFromPath(
+							convertVideo(
+								VideoFilePath = Variables.FileMgr.getFilePath(Arguments.Args[key],sFields[key].Folder),
+								Folder = sFields[format].Folder,
+								Extension = ListFirst(sFields[format].Extensions)
+							)
+						)>
+					<cfcatch type="VideoConverter">
+						<cfset fails = fails + 1>
+						<cfif fails GT ( ListLen(sSources[key]) - 3 )>
+							<cfloop list="#sSources[key]#" index="format2">
+								<cfif StructKeyExists(Arguments.Args,format2) AND Len(Arguments.Args[format2])>
+									<cfset Variables.FileMgr.deleteFile(Arguments.Args[format2],sFields[format2].Folder)>
+									<cfset Arguments.Args[format2]= "">
+								</cfif>
+							</cfloop>
+							<cfset Arguments.Component.throwError("Unable to convert this video to #ListFirst(sFields[format].Extensions)#. This is likely because this codec was not supported. (Video encoding is complicated and not all codecs can be supported, sorry)")>
+						</cfif>
+					</cfcatch>
+					</cftry>
+				</cfloop>
+			</cfif>
+		</cfloop>
 	
 	<cfreturn Arguments.Args>
 </cffunction>
@@ -564,6 +581,8 @@
 		<cfset AllFileExtensions = ListAppend(AllFileExtensions, MimeTypes[jj].extension) >
 		<cfset AllMimeTypes = ListAppend(AllMimeTypes, MimeTypes[jj].type) >
 	</cfloop>
+	<cfset AllFileExtensions = ListAppend(AllFileExtensions, "mov") >
+	<cfset AllMimeTypes = ListAppend(AllMimeTypes, "video/quicktime") >
 	<cfset axSourceField[1].XmlAttributes["video"] = "true">
 	<cfif NOT StructKeyExists(axSourceField[1].XmlAttributes,"type")>
 		<cfset axSourceField[1].XmlAttributes["type"] = "file">
