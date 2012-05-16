@@ -89,6 +89,9 @@
 		<cfset ExePath = "#Variables.LibraryPath#ffmpeg2theora.exe">
 		<cfset command = '#ExePath# -o "#outputFilePath#" "#arguments.VideoFilePath#"'>
 	</cfcase>
+	<cfcase value="swf">
+		<cfset command = '#Variables.LibraryPath#ffmpeg#arch#.exe -i "#arguments.VideoFilePath#" "#outputFilePath#"'>
+	</cfcase>
 	<cfcase value="webm">
 		<cfset command = '#ExePath# -i "#arguments.VideoFilePath#"  -b 1500k -vcodec libvpx -acodec libvorbis -ab 160000 -f webm -g 30 "#outputFilePath#"'>
 	</cfcase>
