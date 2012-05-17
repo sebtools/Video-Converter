@@ -4,6 +4,8 @@
 	<cfargument name="FileMgr" type="any" required="true">
 	<cfargument name="LogsFolder" type="string" default="video_converter,logs">
 	
+	<cfset Variables.VideosDir = "">
+	
 	<cfset Variables.FileMgr = Arguments.FileMgr>
 	
 	<cfif StructKeyExists(Variables.FileMgr,"FileMgr")>
@@ -13,6 +15,16 @@
 	<cfset Variables.VideoFormats = "MP4,OGG,SWF,WEBM">
 	
 	<cfset Variables.FileMgr.makeFolder(Arguments.LogsFolder)>
+	<cfset Variables.FileMgr.makeFolder("videos")>
+	
+	<cfset Variables.VideosDir = Variables.FileMgr.getDirectory("videos")>
+	<cfset VideoPath = Variables.FileMgr.getFilePath("flashfox.swf","videos")>
+	<cfif NOT FileExists(VideoPath)>
+		<cffile action="copy" source="#getDirectoryFromPath(getCurrentTemplatePath())#flashfox.swf" destination="#Variables.VideosDir#" >
+	</cfif>
+	<cfset Variables.VideoPlayerURL = Variables.FileMgr.getFileURL("flashfox.swf","videos")>
+	
+	
 	
 	<cfset Variables.sMe = getMetaData(This)>
 	<cfset Variables.Folder = getDirectoryFromPath(Variables.sMe.Path)>
@@ -396,6 +408,7 @@
 	<cfset var FileURL = "">
 	<cfset var ext = "">
 	<cfset var useVideoElement = false>
+	<cfset var flashvars = "">
 	
 	<cfif NOT StructKeyExists(Arguments,"Width")>
 		<cfset Arguments.Width = "">
@@ -420,6 +433,8 @@
 		</cfswitch>
 	</cfloop>
 	
+	<cfset flashvars = "autoplay=#TrueFalseFormat(Arguments.AutoPlay)#&amp;controls=#TrueFalseFormat(Arguments.Controls)#&amp;loop=false&amp;src=#sVideos.mp4#">
+	
 	<cfset useVideoElement = ( StructKeyExists(sVideos,"mp4") OR StructKeyExists(sVideos,"webm") OR StructKeyExists(sVideos,"ogg") )>
 	
 	<!--- http://camendesign.com/code/video_for_everybody --->
@@ -431,23 +446,25 @@
 		<source src="#sVideos.mp4#" type="video/mp4" /><!--- Safari / iOS video    ---></cfif><cfif StructKeyExists(sVideos,"webm")>
 		<!---<source src="#sVideos.webm#" type="video/webm" />---><!--- Firefox / Opera / Chrome10 ---></cfif><cfif StructKeyExists(sVideos,"ogg")>
 		<source src="#sVideos.ogg#" type="video/ogg" /><!--- Firefox / Opera / Chrome10 ---></cfif></cfif><cfif StructKeyExists(sVideos,"swf")><!--- fallback to Flash: --->
-		<object width="#Arguments.Width#" height="#Arguments.Height#" type="application/x-shockwave-flash" data="#sVideos.swf#"><!--- Firefox uses the "data" attribute above, IE/Safari uses the param below --->
-			<param name="movie" value="#sVideos.swf#" />
+		<object width="#Arguments.Width#" height="#Arguments.Height#" type="application/x-shockwave-flash" data="#Variables.VideoPlayerURL#"><!--- Firefox uses the "data" attribute above, IE/Safari uses the param below --->
+			<param name="movie" value="#Variables.VideoPlayerURL#" />
 			<param name="quality" value="high" />
 			<param name="allowFullScreen" value="true" />
 			<param name="wmode" value="window" />
 			<param name="allowScriptAccess" value="sameDomain" />
 			<param name="loop" value="false" />
+			<param name="flashVars" value="#flashvars#" />
 			<embed
 				type="application/x-shockwave-flash"
 				width="#Arguments.Width#"
 				height="#Arguments.Height#"
-				src="#sVideos.swf#"
+				src="#Variables.VideoPlayerURL#"
 				quality="high"
 				allowFullScreen="true"
 				wmode="window"
 				allowScriptAccess="sameDomain"
 				loop="false"
+				flashvars="#flashvars#"
 			><cfif StructKeyExists(sVideos,"jpg")>
 			<img src="#sVideos.jpg#" width="#Arguments.Width#" height="#Arguments.Height#" alt="#Arguments.Title#" title="No video playback capabilities, please download the video below" /></cfif>
 		</object><cfelseif StructKeyExists(sVideos,"jpg")>
@@ -723,6 +740,16 @@
 	</cfscript>	
 
 </cffunction>
+
+<cfscript>
+function TrueFalseFormat(value) {
+	if ( value IS true ) {
+		return "true";
+	} else {
+		return "false";
+	}
+}
+</cfscript>
 
 <cffunction name="getEpochTime" access="private" returntype="string" output="no" hint="I get an Epoch time string (the number of seconds since January 1, 1970, 00:00:00).">
 <cfscript>
