@@ -292,15 +292,39 @@
 	<cfset var arch = "">
 	<cfset var ExePath = "">
 
-	<cfif StructKeyExists(Server.os,"arch") && FindNoCase('x86',Server.os.arch) >
-		<cfset arch = "x86">
-	</cfif>
+	<!---
+	Server variables reference:
+	http://lopica.sourceforge.net/os.html
+	
+	os.arch warning:
+	http://mark.koli.ch/2009/10/javas-osarch-system-property-is-the-bitness-of-the-jre-not-the-operating-system.html
+	os.arch solution?:
+	http://mark.koli.ch/2009/10/reliably-checking-os-bitness-32-or-64-bit-on-windows-with-a-tiny-c-app.html
+	
+	Linux static ffmpeg builds:
+	http://ffmpeg.gusari.org/static/
+	--->
+
 	<cfif StructKeyExists(Server.os,"name")>
-		<cfif Server.os.name EQ "UNIX">
-			<cfset ExePath = '/usr/bin/ffmpeg'>
-		<cfelse>
+	
+	<!--- Do we really need to test for existence of Server.os.name and Server.os.arch? --->
+		
+		<cfif Server.os.name CONTAINS "Windows">
+		
+			<cfif StructKeyExists(Server.os,"arch") && FindNoCase('x86',Server.os.arch) >
+				<cfset arch = "x86">
+			</cfif>
 			<cfset ExePath = "#Variables.LibraryPath#ffmpeg#arch#.exe">
+			
+		<cfelseif Server.os.name EQ "UNIX">
+		
+			<cfif StructKeyExists(Server.os,"arch") && (FindNoCase('64',Server.os.arch) OR FindNoCase('i686',Server.os.arch)) >
+				<cfset arch = "64">
+			</cfif>
+			<cfset ExePath = '#Variables.LibraryPath#ffmpeg#arch#linux'>
+			
 		</cfif>
+		
 	</cfif>
 	
 	<cfreturn ExePath>
