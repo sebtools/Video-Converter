@@ -59,8 +59,7 @@
 	<cfset var bitrate = "64k">
 	<cfset var audiobitrate = "128k">
 	<cfset var framerate = 24>
-	<cfset var arch = "">
-	<cfset var ExePath = "">
+	<cfset var ExePath = getExecutablePath()>
 	<!--- <cfset var audiocodec = VideoInfo.AudioCodec> --->
 	
 	<cfif NOT Len(Arguments.outputFilePath)>
@@ -80,12 +79,7 @@
 	<cfif StructKeyExists(VideoInfo,"Framerate")>
 		<cfset framerate = VideoInfo.Framerate>
 	</cfif>
-	<cfif StructKeyExists(Server.os,"arch") && FindNoCase('x86',Server.os.arch) >
-		<cfset arch = "x86">
-	</cfif>
-	
-	<cfset ExePath = "#Variables.LibraryPath#ffmpeg#arch#.exe">
-	
+
 	<!---
 	References:
 	https://develop.participatoryculture.org/index.php/ConversionMatrix
@@ -95,21 +89,21 @@
 	<cfcase value="mp4">
 		<!---<cfset command = '#ExePath# -i "#arguments.VideoFilePath#" -acodec aac -ac 2 -ab 160k -vcodec libx264 -vpre slow -f mp4 -crf 22 "#outputFilePath#"'>--->
 		<cfset command = '#ExePath# -i "#arguments.VideoFilePath#" -b 1500k -vcodec libx264 -vpre slow -vpre baseline -g 30 "#outputFilePath#"'>
-		<cfset command = '#Variables.LibraryPath#ffmpeg#arch#.exe -i "#arguments.VideoFilePath#" -g 300 -y -b:v #bitrate# -b:a #audiobitrate# -r #framerate# -ar 44100 "#outputFilePath#"'><!---  -s qvga --->
+		<cfset command = '#ExePath# -i "#arguments.VideoFilePath#" -g 300 -y -b:v #bitrate# -b:a #audiobitrate# -r #framerate# -ar 44100 "#outputFilePath#"'><!---  -s qvga --->
 	</cfcase>
 	<cfcase value="ogg,ogv">
 		<cfset ExePath = "#Variables.LibraryPath#ffmpeg2theora.exe">
 		<cfset command = '#ExePath# -o "#outputFilePath#" "#arguments.VideoFilePath#"'>
 	</cfcase>
 	<cfcase value="swf">
-		<cfset command = '#Variables.LibraryPath#ffmpeg#arch#.exe -i "#arguments.VideoFilePath#" "#outputFilePath#"'>
+		<cfset command = '#ExePath# -i "#arguments.VideoFilePath#" "#outputFilePath#"'>
 	</cfcase>
 	<cfcase value="webm">
 		<cfset command = '#ExePath# -i "#arguments.VideoFilePath#"  -b 1500k -vcodec libvpx -acodec libvorbis -ab 160000 -f webm -g 30 "#outputFilePath#"'>
 	</cfcase>
 	<cfdefaultcase>
 		<!--- command = '#Variables.LibraryPath#ffmpeg.exe -i "#arguments.VideoFilePath#" -g 300 -y -s qvga -map_meta_data "#outputFilePath#:#arguments.VideoFilePath#" -b:v #bitrate# -b:a #audiobitrate# -r #framerate# -ar 44100 "#outputFilePath#"'; --->
-		<cfset command = '#Variables.LibraryPath#ffmpeg#arch#.exe -i "#arguments.VideoFilePath#" -g 300 -y -b:v #bitrate# -b:a #audiobitrate# -r #framerate# -ar 44100 "#outputFilePath#"'><!---  -s qvga --->
+		<cfset command = '#ExePath# -i "#arguments.VideoFilePath#" -g 300 -y -b:v #bitrate# -b:a #audiobitrate# -r #framerate# -ar 44100 "#outputFilePath#"'><!---  -s qvga --->
 	</cfdefaultcase>
 	</cfswitch>
 	
@@ -136,8 +130,8 @@
 	<cfset var bitrate = "64k">
 	<cfset var audiobitrate = "128k">
 	<cfset var framerate = 24>
-	<cfset var arch = "">
-	<cfset var ExePath = "">
+	<!--- <cfset var arch = "">
+	<cfset var ExePath = ""> --->
 	<!--- <cfset var audiocodec = VideoInfo.AudioCodec> --->
 
 	<cfset Variables.FileMgr.makeFolder(Arguments.Folder)>
@@ -291,6 +285,25 @@
 	</cfif>
 	
 	<cfreturn result>
+</cffunction>
+
+<cffunction name="getExecutablePath" access="public" returntype="string" output="no" hint="I get the ffmpeg executable path.">
+	
+	<cfset var arch = "">
+	<cfset var ExePath = "">
+
+	<cfif StructKeyExists(Server.os,"arch") && FindNoCase('x86',Server.os.arch) >
+		<cfset arch = "x86">
+	</cfif>
+	<cfif StructKeyExists(Server.os,"name")>
+		<cfif Server.os.name EQ "UNIX">
+			<cfset ExePath = '/usr/bin/ffmpeg'>
+		<cfelse>
+			<cfset ExePath = "#Variables.LibraryPath#ffmpeg#arch#.exe">
+		</cfif>
+	</cfif>
+	
+	<cfreturn ExePath>
 </cffunction>
 
 <cffunction name="getVideoFileNames" access="private" returntype="string" output="false" hint="I return a list of file fields based on a file name (based on how modifyXml creates fields).">
@@ -494,6 +507,7 @@
 	var buffered = "";
 	var line = "";
 	var arch = "";
+	var ExePath = getExecutablePath();
 
 	VideoInfo.fileExists = false;
 	VideoInfo.fileSize = 0;
@@ -509,7 +523,7 @@
 	if(StructKeyExists(Server.os,"arch") && FindNoCase('x86',Server.os.arch)){ arch = "x86";}
 	
 	oRuntime = CreateObject("java", "java.lang.Runtime").getRuntime();
-	command = '#Variables.LibraryPath#ffmpeg#arch#.exe -i "#Arguments.file#"';
+	command = '#ExePath# -i "#Arguments.file#"';
 	process = oRuntime.exec(#command#);
 	stdError = process.getErrorStream();
 	reader = CreateObject("java", "java.io.InputStreamReader").init(stdError);
