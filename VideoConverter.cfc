@@ -130,6 +130,7 @@
 	<cfset var bitrate = "64k">
 	<cfset var audiobitrate = "128k">
 	<cfset var framerate = 24>
+	<cfset var ErrorMsg = "">
 	<!--- <cfset var arch = "">
 	<cfset var ExePath = ""> --->
 	<!--- <cfset var audiocodec = VideoInfo.AudioCodec> --->
@@ -141,7 +142,7 @@
 	<cfset command = getConversionCommand(ArgumentCollection=Arguments)>
 	
 	<cfscript>
-	try {
+	//try {
 		oRuntime = CreateObject("java", "java.lang.Runtime").getRuntime();
 		
 		//command = '#Variables.LibraryPath#ffmpeg.exe -i "#arguments.VideoFilePath#" -g 300 -y -s qvga -map_meta_data "#outputFilePath#:#arguments.VideoFilePath#" -b:v #bitrate# -b:a #audiobitrate# -r #framerate# -ar 44100 "#outputFilePath#"';
@@ -151,10 +152,10 @@
 		sResults.errorLogSuccess = processVideoStream(process.getErrorStream(),arguments.writeLogsToFile,true);
 		sResults.resultLogSuccess = processVideoStream(process.getInputStream(),arguments.writeLogsToFile);
 		sResults.exitCode = process.waitFor();
-	}
-	catch(exception e) {
-		sResults.status = e;
-	}
+	//}
+	//catch(exception e) {
+	//	sResults.status = e;
+	//}
 	</cfscript>
 	
 	<!--- Check for converted file. Size > 0 means a successful conversion. --->
@@ -168,7 +169,8 @@
 	<cfset ConversionSuccessful = (ConvertedFileSize GT 0)>
 	
 	<cfif NOT ConversionSuccessful>
-		<cfthrow type="VideoConverter" message="The file conversion was unsuccessful. Check the error log for details.">
+		<cfset ErrorMsg = variables.FileMgr.readFile("errors.log","video_converter/logs")>
+		<cfthrow type="VideoConverter" message="The file conversion was unsuccessful. #ErrorMsg#">
 	</cfif>
 	
 	<cfreturn outputFilePath>
@@ -731,12 +733,15 @@
 	<cfset var buffered = "">
 	<cfset var line = "">
 	<cfset var errorFound = false>
-	<cfset var aErrors = ArrayNew(1)>
 	<cfset var errorToThrow = "">
 	
 	<cfscript>
 	if ( Arguments.sendToFile ) {
-		out = CreateObject("java", "java.io.FileOutputStream").init("#variables.VideoLogPath#errors.log");
+		if (arguments.isErrorStream) {
+			out = CreateObject("java", "java.io.FileOutputStream").init("#variables.VideoLogPath#errors.log");
+		} else {
+			out = CreateObject("java", "java.io.FileOutputStream").init("#variables.VideoLogPath#results.log");
+		}
 		writer = CreateObject("java", "java.io.PrintWriter").init(out);
 	}
 	
@@ -744,12 +749,8 @@
 	buffered = CreateObject("java", "java.io.BufferedReader").init(reader);
 	line = buffered.readLine();
 	while ( IsDefined("line") ) {
-		if (arguments.isErrorStream) {
-			errorToThrow = errorToThrow & line;
-		}
 		if ( Arguments.sendToFile ) {
 			writer.println(line);
-			ArrayAppend(aErrors,line);
 		}
 		line = buffered.readLine();
 	} 
@@ -759,10 +760,6 @@
 		writer.close();
 	}
 	</cfscript>
-	
-	<cfif arguments.isErrorStream AND Len(errorToThrow)>
-		<cfthrow detail="#errorToThrow#" message="There was an error converting the video" >
-	</cfif>
 
 	<!--- return true if no errors found. --->
 	<cfreturn (NOT errorFound)>
