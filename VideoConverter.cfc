@@ -179,6 +179,7 @@
 <cffunction name="formatVideos" access="public" returntype="struct" output="no" hint="I reproduce any videos in the needed formats." todo="steve">
 	<cfargument name="Component" type="any" required="yes" hint="The calling component.">
 	<cfargument name="Args" type="struct" required="yes" hint="The incoming arguments to the calling method.">
+	<cfargument name="extensions" type="string" default="mp4,ogv,webm">
 	
 	<cfset var sFields = Arguments.Component.getFieldsStruct()>
 	<cfset var sSources = StructNew()>
@@ -220,27 +221,31 @@
 					<cfif ext EQ "ogg">
 						<cfset ext = "ogv">
 					</cfif>
-					<cftry>
-						<cfset Arguments.Args[format] = getFileFromPath(
-							convertVideo(
-								VideoFilePath = Variables.FileMgr.getFilePath(Arguments.Args[key],sFields[key].Folder),
-								Folder = sFields[format].Folder,
-								Extension = ext
-							)
-						)>
-					<cfcatch type="VideoConverter">
-						<cfset fails = fails + 1>
-						<cfif fails GT ( ListLen(sSources[key]) - 3 )>
-							<cfloop list="#sSources[key]#" index="format2">
-								<cfif StructKeyExists(Arguments.Args,format2) AND Len(Arguments.Args[format2])>
-									<cfset Variables.FileMgr.deleteFile(Arguments.Args[format2],sFields[format2].Folder)>
-									<cfset Arguments.Args[format2]= "">
-								</cfif>
-							</cfloop>
-							<cfset Arguments.Component.throwError("Unable to convert this video to #ListFirst(sFields[format].Extensions)#. This is likely because this codec was not supported. (Video encoding is complicated and not all codecs can be supported, sorry)")>
-						</cfif>
-					</cfcatch>
-					</cftry>
+					<cfif ext EQ ListLast(Arguments.Args[key],".")>
+						<cfset Arguments.Args[format] = Arguments.Args[key]>
+					<cfelseif ListFindNoCase(extensions,ext)>
+						<cftry>
+							<cfset Arguments.Args[format] = getFileFromPath(
+								convertVideo(
+									VideoFilePath = Variables.FileMgr.getFilePath(Arguments.Args[key],sFields[key].Folder),
+									Folder = sFields[format].Folder,
+									Extension = ext
+								)
+							)>
+						<cfcatch type="VideoConverter">
+							<cfset fails = fails + 1>
+							<cfif fails GT ( ListLen(sSources[key]) - 3 )>
+								<cfloop list="#sSources[key]#" index="format2">
+									<cfif StructKeyExists(Arguments.Args,format2) AND Len(Arguments.Args[format2])>
+										<cfset Variables.FileMgr.deleteFile(Arguments.Args[format2],sFields[format2].Folder)>
+										<cfset Arguments.Args[format2]= "">
+									</cfif>
+								</cfloop>
+								<cfset Arguments.Component.throwError("Unable to convert this video to #ListFirst(sFields[format].Extensions)#. This is likely because this codec was not supported. (Video encoding is complicated and not all codecs can be supported, sorry)")>
+							</cfif>
+						</cfcatch>
+						</cftry>
+					</cfif>
 				</cfloop>
 			</cfif>
 		</cfloop>
