@@ -59,8 +59,7 @@
 	<cfset var bitrate = "64k">
 	<cfset var audiobitrate = "128k">
 	<cfset var framerate = 24>
-	<cfset var arch = "">
-	<cfset var ExePath = "">
+	<cfset var ExePath = getExecutablePath()>
 	<!--- <cfset var audiocodec = VideoInfo.AudioCodec> --->
 	
 	<cfif NOT Len(Arguments.outputFilePath)>
@@ -80,12 +79,7 @@
 	<cfif StructKeyExists(VideoInfo,"Framerate")>
 		<cfset framerate = VideoInfo.Framerate>
 	</cfif>
-	<cfif StructKeyExists(Server.os,"arch") && FindNoCase('x86',Server.os.arch) >
-		<cfset arch = "x86">
-	</cfif>
-	
-	<cfset ExePath = "#Variables.LibraryPath#ffmpeg#arch#.exe">
-	
+
 	<!---
 	References:
 	https://develop.participatoryculture.org/index.php/ConversionMatrix
@@ -95,21 +89,21 @@
 	<cfcase value="mp4">
 		<!---<cfset command = '#ExePath# -i "#arguments.VideoFilePath#" -acodec aac -ac 2 -ab 160k -vcodec libx264 -vpre slow -f mp4 -crf 22 "#outputFilePath#"'>--->
 		<cfset command = '#ExePath# -i "#arguments.VideoFilePath#" -b 1500k -vcodec libx264 -vpre slow -vpre baseline -g 30 "#outputFilePath#"'>
-		<cfset command = '#Variables.LibraryPath#ffmpeg#arch#.exe -i "#arguments.VideoFilePath#" -g 300 -y -b:v #bitrate# -b:a #audiobitrate# -r #framerate# -ar 44100 "#outputFilePath#"'><!---  -s qvga --->
+		<cfset command = '#ExePath# -i "#arguments.VideoFilePath#" -g 300 -y -b:v #bitrate# -b:a #audiobitrate# -r #framerate# -ar 44100 "#outputFilePath#"'><!---  -s qvga --->
 	</cfcase>
 	<cfcase value="ogg,ogv">
 		<cfset ExePath = "#Variables.LibraryPath#ffmpeg2theora.exe">
 		<cfset command = '#ExePath# -o "#outputFilePath#" "#arguments.VideoFilePath#"'>
 	</cfcase>
 	<cfcase value="swf">
-		<cfset command = '#Variables.LibraryPath#ffmpeg#arch#.exe -i "#arguments.VideoFilePath#" "#outputFilePath#"'>
+		<cfset command = '#ExePath# -i "#arguments.VideoFilePath#" "#outputFilePath#"'>
 	</cfcase>
 	<cfcase value="webm">
 		<cfset command = '#ExePath# -i "#arguments.VideoFilePath#"  -b 1500k -vcodec libvpx -acodec libvorbis -ab 160000 -f webm -g 30 "#outputFilePath#"'>
 	</cfcase>
 	<cfdefaultcase>
 		<!--- command = '#Variables.LibraryPath#ffmpeg.exe -i "#arguments.VideoFilePath#" -g 300 -y -s qvga -map_meta_data "#outputFilePath#:#arguments.VideoFilePath#" -b:v #bitrate# -b:a #audiobitrate# -r #framerate# -ar 44100 "#outputFilePath#"'; --->
-		<cfset command = '#Variables.LibraryPath#ffmpeg#arch#.exe -i "#arguments.VideoFilePath#" -g 300 -y -b:v #bitrate# -b:a #audiobitrate# -r #framerate# -ar 44100 "#outputFilePath#"'><!---  -s qvga --->
+		<cfset command = '#ExePath# -i "#arguments.VideoFilePath#" -g 300 -y -b:v #bitrate# -b:a #audiobitrate# -r #framerate# -ar 44100 "#outputFilePath#"'><!---  -s qvga --->
 	</cfdefaultcase>
 	</cfswitch>
 	
@@ -136,8 +130,9 @@
 	<cfset var bitrate = "64k">
 	<cfset var audiobitrate = "128k">
 	<cfset var framerate = 24>
-	<cfset var arch = "">
-	<cfset var ExePath = "">
+	<cfset var ErrorMsg = "">
+	<!--- <cfset var arch = "">
+	<cfset var ExePath = ""> --->
 	<!--- <cfset var audiocodec = VideoInfo.AudioCodec> --->
 
 	<cfset Variables.FileMgr.makeFolder(Arguments.Folder)>
@@ -147,20 +142,20 @@
 	<cfset command = getConversionCommand(ArgumentCollection=Arguments)>
 	
 	<cfscript>
-	try {
+	//try {
 		oRuntime = CreateObject("java", "java.lang.Runtime").getRuntime();
 		
 		//command = '#Variables.LibraryPath#ffmpeg.exe -i "#arguments.VideoFilePath#" -g 300 -y -s qvga -map_meta_data "#outputFilePath#:#arguments.VideoFilePath#" -b:v #bitrate# -b:a #audiobitrate# -r #framerate# -ar 44100 "#outputFilePath#"';
 		//command = '#Variables.LibraryPath#ffmpeg#arch#.exe -i "#arguments.VideoFilePath#" -g 300 -y -s qvga -b:v #bitrate# -b:a #audiobitrate# -r #framerate# -ar 44100 "#outputFilePath#"';
 		
 		process = oRuntime.exec(#command#);
-		sResults.errorLogSuccess = processVideoStream(process.getErrorStream(),arguments.writeLogsToFile);
+		sResults.errorLogSuccess = processVideoStream(process.getErrorStream(),arguments.writeLogsToFile,true);
 		sResults.resultLogSuccess = processVideoStream(process.getInputStream(),arguments.writeLogsToFile);
 		sResults.exitCode = process.waitFor();
-	}
-	catch(exception e) {
-		sResults.status = e;
-	}
+	//}
+	//catch(exception e) {
+	//	sResults.status = e;
+	//}
 	</cfscript>
 	
 	<!--- Check for converted file. Size > 0 means a successful conversion. --->
@@ -174,7 +169,8 @@
 	<cfset ConversionSuccessful = (ConvertedFileSize GT 0)>
 	
 	<cfif NOT ConversionSuccessful>
-		<cfthrow type="VideoConverter" message="The file conversion was unsuccessful. Check the error log for details.">
+		<cfset ErrorMsg = variables.FileMgr.readFile("errors.log","video_converter/logs")>
+		<cfthrow type="VideoConverter" message="The file conversion was unsuccessful. #ErrorMsg#">
 	</cfif>
 	
 	<cfreturn outputFilePath>
@@ -183,6 +179,7 @@
 <cffunction name="formatVideos" access="public" returntype="struct" output="no" hint="I reproduce any videos in the needed formats." todo="steve">
 	<cfargument name="Component" type="any" required="yes" hint="The calling component.">
 	<cfargument name="Args" type="struct" required="yes" hint="The incoming arguments to the calling method.">
+	<cfargument name="extensions" type="string" default="mp4,ogv,webm">
 	
 	<cfset var sFields = Arguments.Component.getFieldsStruct()>
 	<cfset var sSources = StructNew()>
@@ -224,27 +221,31 @@
 					<cfif ext EQ "ogg">
 						<cfset ext = "ogv">
 					</cfif>
-					<cftry>
-						<cfset Arguments.Args[format] = getFileFromPath(
-							convertVideo(
-								VideoFilePath = Variables.FileMgr.getFilePath(Arguments.Args[key],sFields[key].Folder),
-								Folder = sFields[format].Folder,
-								Extension = ext
-							)
-						)>
-					<cfcatch type="VideoConverter">
-						<cfset fails = fails + 1>
-						<cfif fails GT ( ListLen(sSources[key]) - 3 )>
-							<cfloop list="#sSources[key]#" index="format2">
-								<cfif StructKeyExists(Arguments.Args,format2) AND Len(Arguments.Args[format2])>
-									<cfset Variables.FileMgr.deleteFile(Arguments.Args[format2],sFields[format2].Folder)>
-									<cfset Arguments.Args[format2]= "">
-								</cfif>
-							</cfloop>
-							<cfset Arguments.Component.throwError("Unable to convert this video to #ListFirst(sFields[format].Extensions)#. This is likely because this codec was not supported. (Video encoding is complicated and not all codecs can be supported, sorry)")>
-						</cfif>
-					</cfcatch>
-					</cftry>
+					<cfif ext EQ ListLast(Arguments.Args[key],".")>
+						<cfset Arguments.Args[format] = Arguments.Args[key]>
+					<cfelseif ListFindNoCase(extensions,ext)>
+						<cftry>
+							<cfset Arguments.Args[format] = getFileFromPath(
+								convertVideo(
+									VideoFilePath = Variables.FileMgr.getFilePath(Arguments.Args[key],sFields[key].Folder),
+									Folder = sFields[format].Folder,
+									Extension = ext
+								)
+							)>
+						<cfcatch type="VideoConverter">
+							<cfset fails = fails + 1>
+							<cfif fails GT ( ListLen(sSources[key]) - 3 )>
+								<cfloop list="#sSources[key]#" index="format2">
+									<cfif StructKeyExists(Arguments.Args,format2) AND Len(Arguments.Args[format2])>
+										<cfset Variables.FileMgr.deleteFile(Arguments.Args[format2],sFields[format2].Folder)>
+										<cfset Arguments.Args[format2]= "">
+									</cfif>
+								</cfloop>
+								<cfset Arguments.Component.throwError("Unable to convert this video to #ListFirst(sFields[format].Extensions)#. This is likely because this codec was not supported. (Video encoding is complicated and not all codecs can be supported, sorry)")>
+							</cfif>
+						</cfcatch>
+						</cftry>
+					</cfif>
 				</cfloop>
 			</cfif>
 		</cfloop>
@@ -264,6 +265,7 @@
 	<cfset var sImageFileInfo = StructNew()>
 	<cfset var result = "">
 	<cfset var ThumbFileName = getFileFromPath(ListDeleteAt(Arguments.VideoFilePath,ListLen(Arguments.VideoFilePath,"."),".") & ".jpg")>
+	<cfset var ExePath = getExecutablePath()>
 	
 	<!--- Determine the image path --->
 	<cfset Arguments.ThumbFilePath = Variables.FileMgr.createUniqueFileName(Variables.FileMgr.getFilePath(ThumbFileName,Arguments.ThumbFolder))>
@@ -271,9 +273,9 @@
 	<cfscript>
 	try {
 		oRuntime = CreateObject("java", "java.lang.Runtime").getRuntime();
-		command = '#Variables.LibraryPath#ffmpeg.exe -i "#Arguments.VideoFilePath#" -r 1 -s qqvga -f image2 -ss 3 -vframes 1 "#Arguments.ThumbFilePath#"';
+		command = '#ExePath# -i "#Arguments.VideoFilePath#" -r 1 -s qqvga -f image2 -ss 3 -vframes 1 "#Arguments.ThumbFilePath#"';
 		process = oRuntime.exec(#command#);
-		sResults.errorLogSuccess = processVideoStream(process.getErrorStream());
+		sResults.errorLogSuccess = processVideoStream(process.getErrorStream(),false,true);
 		sResults.resultLogSuccess = processVideoStream(process.getInputStream());
 		sResults.exitCode = process.waitFor();
 	}
@@ -291,6 +293,49 @@
 	</cfif>
 	
 	<cfreturn result>
+</cffunction>
+
+<cffunction name="getExecutablePath" access="public" returntype="string" output="no" hint="I get the ffmpeg executable path.">
+	
+	<cfset var arch = "">
+	<cfset var ExePath = "">
+
+	<!---
+	Server variables reference:
+	http://lopica.sourceforge.net/os.html
+	
+	os.arch warning:
+	http://mark.koli.ch/2009/10/javas-osarch-system-property-is-the-bitness-of-the-jre-not-the-operating-system.html
+	os.arch solution?:
+	http://mark.koli.ch/2009/10/reliably-checking-os-bitness-32-or-64-bit-on-windows-with-a-tiny-c-app.html
+	
+	Linux static ffmpeg builds:
+	http://ffmpeg.gusari.org/static/
+	--->
+
+	<cfif StructKeyExists(Server.os,"name")>
+	
+	<!--- Do we really need to test for existence of Server.os.name and Server.os.arch? --->
+		
+		<cfif Server.os.name CONTAINS "Windows">
+		
+			<cfif StructKeyExists(Server.os,"arch") && FindNoCase('x86',Server.os.arch) >
+				<cfset arch = "x86">
+			</cfif>
+			<cfset ExePath = "#Variables.LibraryPath#ffmpeg#arch#.exe">
+			
+		<cfelseif Server.os.name EQ "UNIX">
+		
+			<cfif StructKeyExists(Server.os,"arch") && (FindNoCase('64',Server.os.arch) OR FindNoCase('i686',Server.os.arch)) >
+				<cfset arch = "64">
+			</cfif>
+			<cfset ExePath = '#Variables.LibraryPath#ffmpeg#arch#linux'>
+			
+		</cfif>
+		
+	</cfif>
+	
+	<cfreturn ExePath>
 </cffunction>
 
 <cffunction name="getVideoFileNames" access="private" returntype="string" output="false" hint="I return a list of file fields based on a file name (based on how modifyXml creates fields).">
@@ -484,8 +529,8 @@
 	<cfargument name="file" type="string" required="yes">
 	
 	<cfscript>		
-	var VideoInfo=StructNew();
-	var ffmpegOut="";
+	var VideoInfo = StructNew();
+	var ffmpegOut = "";
 	var command = "";
 	var process = "";
 	var oRuntime = "";
@@ -494,6 +539,7 @@
 	var buffered = "";
 	var line = "";
 	var arch = "";
+	var ExePath = getExecutablePath();
 
 	VideoInfo.fileExists = false;
 	VideoInfo.fileSize = 0;
@@ -506,10 +552,10 @@
 	VideoInfo.fileExists = true;
 	VideoInfo.fileSize = createObject("java", "java.io.File").init("#Arguments.file#").length();
 	if ( VideoInfo.FileSize eq 0) { return VideoInfo; }
-	if(StructKeyExists(Server.os,"arch") && FindNoCase('x86',Server.os.arch)){ arch = "x86";}
+	//if(StructKeyExists(Server.os,"arch") && FindNoCase('x86',Server.os.arch)){ arch = "x86";}
 	
 	oRuntime = CreateObject("java", "java.lang.Runtime").getRuntime();
-	command = '#Variables.LibraryPath#ffmpeg#arch#.exe -i "#Arguments.file#"';
+	command = '#ExePath# -i "#Arguments.file#"';
 	process = oRuntime.exec(#command#);
 	stdError = process.getErrorStream();
 	reader = CreateObject("java", "java.io.InputStreamReader").init(stdError);
@@ -684,6 +730,7 @@
 <cffunction name="processVideoStream" access="public" output="false" returntype="boolean" hint="I drain the input/output streams and optionally write the stream to a file. I return true if stream was successfully processed.">
     <cfargument name="in" type="any" required="true" hint="java.io.InputStream object">
 	<cfargument name="sendToFile" type="boolean" hint="Send this video stream to file?" default="false">
+	<cfargument name="isErrorStream" type="boolean" hint="Is this an error stream?" default="false">
 	
 	<cfset var out = "">
 	<cfset var writer = "">
@@ -691,11 +738,15 @@
 	<cfset var buffered = "">
 	<cfset var line = "">
 	<cfset var errorFound = false>
-	<cfset var aErrors = ArrayNew(1)>
+	<cfset var errorToThrow = "">
 	
 	<cfscript>
 	if ( Arguments.sendToFile ) {
-		out = CreateObject("java", "java.io.FileOutputStream").init("#variables.VideoLogPath#errors.log");
+		if (arguments.isErrorStream) {
+			out = CreateObject("java", "java.io.FileOutputStream").init("#variables.VideoLogPath#errors.log");
+		} else {
+			out = CreateObject("java", "java.io.FileOutputStream").init("#variables.VideoLogPath#results.log");
+		}
 		writer = CreateObject("java", "java.io.PrintWriter").init(out);
 	}
 	
@@ -705,7 +756,6 @@
 	while ( IsDefined("line") ) {
 		if ( Arguments.sendToFile ) {
 			writer.println(line);
-			ArrayAppend(aErrors,line);
 		}
 		line = buffered.readLine();
 	} 
@@ -715,7 +765,7 @@
 		writer.close();
 	}
 	</cfscript>
-	
+
 	<!--- return true if no errors found. --->
 	<cfreturn (NOT errorFound)>
 </cffunction>
