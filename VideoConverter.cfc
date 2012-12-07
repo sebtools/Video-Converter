@@ -3,36 +3,36 @@
 <cffunction name="init" access="public" returntype="any" output="no">
 	<cfargument name="FileMgr" type="any" required="true">
 	<cfargument name="LogsFolder" type="string" default="video_converter,logs">
-	
+
 	<cfset Variables.VideosDir = "">
-	
+
 	<cfset Variables.FileMgr = Arguments.FileMgr>
-	
+
 	<cfif StructKeyExists(Variables.FileMgr,"FileMgr")>
 		<cfset Variables.FileMgr = Variables.FileMgr.FileMgr>
 	</cfif>
-	
+
 	<cfset Variables.VideoFormats = "MP4,OGG,SWF,WEBM">
-	
+
 	<cfset Variables.FileMgr.makeFolder(Arguments.LogsFolder)>
 	<cfset Variables.FileMgr.makeFolder("videos")>
-	
+
 	<cfset Variables.VideosDir = Variables.FileMgr.getDirectory("videos")>
 	<cfset VideoPath = Variables.FileMgr.getFilePath("flashfox.swf","videos")>
 	<cfif NOT FileExists(VideoPath)>
 		<cffile action="copy" source="#getDirectoryFromPath(getCurrentTemplatePath())#flashfox.swf" destination="#Variables.VideosDir#" >
 	</cfif>
 	<cfset Variables.VideoPlayerURL = Variables.FileMgr.getFileURL("flashfox.swf","videos")>
-	
-	
-	
+
+
+
 	<cfset Variables.sMe = getMetaData(This)>
 	<cfset Variables.Folder = getDirectoryFromPath(Variables.sMe.Path)>
 	<cfset Variables.Delim = Right(Variables.Folder,1)>
-	
+
 	<cfset Variables.LibraryPath = "#Variables.Folder#lib#Variables.Delim#">
 	<cfset Variables.VideoLogPath = Variables.FileMgr.getDirectory(Arguments.LogsFolder)>
-	
+
 	<!--- Make sure log files exist --->
 	<cfif NOT FileExists(Variables.FileMgr.getFilePath("errors.log",Arguments.LogsFolder))>
 		<cfset Variables.FileMgr.writeFile("errors.log","",Arguments.LogsFolder)>
@@ -40,7 +40,7 @@
 	<cfif NOT FileExists(Variables.FileMgr.getFilePath("results.log",Arguments.LogsFolder))>
 		<cfset Variables.FileMgr.writeFile("results.log","",Arguments.LogsFolder)>
 	</cfif>
-			 
+
 	<cfreturn This>
 </cffunction>
 
@@ -50,9 +50,9 @@
 	<cfargument name="Extension" type="string" default="flv" hint="The extension for the new file.">
 	<cfargument name="outputFilePath" type="string" required="yes" default="">
 	<cfargument name="writeLogsToFile" type="boolean" required="yes" default="true">
-	
+
 	<!--- %%TODO: Provide variable bitrates dependent on client bandwidth --->
-	
+
 	<cfset var command = "">
 	<cfset var sConvertedFileInfo = StructNew()>
 	<cfset var VideoInfo = getVideoInfo(file=arguments.VideoFilePath)>
@@ -61,13 +61,13 @@
 	<cfset var framerate = 24>
 	<cfset var ExePath = getExecutablePath()>
 	<!--- <cfset var audiocodec = VideoInfo.AudioCodec> --->
-	
+
 	<cfif NOT Len(Arguments.outputFilePath)>
 		<cfset Variables.FileMgr.makeFolder(Arguments.Folder)>
 		<cfset Arguments.outputFilePath = Variables.FileMgr.getDirectory(arguments.Folder) & ListFirst(ListLast(getFileFromPath(arguments.VideoFilePath),"/"),".") & "." & arguments.Extension>
 		<cfset Arguments.outputFilePath = Variables.FileMgr.createUniqueFileName(outputFilePath)>
 	</cfif>
-	
+
 
 	<!--- value returned in VideoInfo is kb/s --->
 	<cfif StructKeyExists(VideoInfo,"BitRate")>
@@ -106,7 +106,7 @@
 		<cfset command = '#ExePath# -i "#arguments.VideoFilePath#" -g 300 -y -b:v #bitrate# -b:a #audiobitrate# -r #framerate# -ar 44100 "#outputFilePath#"'><!---  -s qvga --->
 	</cfdefaultcase>
 	</cfswitch>
-	
+
 	<cfreturn command>
 </cffunction>
 
@@ -115,9 +115,9 @@
 	<cfargument name="Folder" type="string" required="yes" hint="The folder in which to place the new video.">
 	<cfargument name="Extension" type="string" default="flv" hint="The extension for the new file.">
 	<cfargument name="writeLogsToFile" type="boolean" required="yes" default="true">
-	
+
 	<!--- %%TODO: Provide variable bitrates dependent on client bandwidth --->
-	
+
 	<!--- convert the file --->
 	<cfset var oRuntime = "">
 	<cfset var command = "">
@@ -138,16 +138,16 @@
 	<cfset Variables.FileMgr.makeFolder(Arguments.Folder)>
 	<cfset Arguments.outputFilePath = Variables.FileMgr.getDirectory(arguments.Folder) & ListFirst(ListLast(getFileFromPath(arguments.VideoFilePath),"/"),".") & "." & arguments.Extension>
 	<cfset Arguments.outputFilePath = Variables.FileMgr.createUniqueFileName(outputFilePath)>
-	
+
 	<cfset command = getConversionCommand(ArgumentCollection=Arguments)>
-	
+
 	<cfscript>
 	//try {
 		oRuntime = CreateObject("java", "java.lang.Runtime").getRuntime();
-		
+
 		//command = '#Variables.LibraryPath#ffmpeg.exe -i "#arguments.VideoFilePath#" -g 300 -y -s qvga -map_meta_data "#outputFilePath#:#arguments.VideoFilePath#" -b:v #bitrate# -b:a #audiobitrate# -r #framerate# -ar 44100 "#outputFilePath#"';
 		//command = '#Variables.LibraryPath#ffmpeg#arch#.exe -i "#arguments.VideoFilePath#" -g 300 -y -s qvga -b:v #bitrate# -b:a #audiobitrate# -r #framerate# -ar 44100 "#outputFilePath#"';
-		
+
 		process = oRuntime.exec(#command#);
 		sResults.errorLogSuccess = processVideoStream(process.getErrorStream(),arguments.writeLogsToFile,true);
 		sResults.resultLogSuccess = processVideoStream(process.getInputStream(),arguments.writeLogsToFile);
@@ -157,7 +157,7 @@
 	//	sResults.status = e;
 	//}
 	</cfscript>
-	
+
 	<!--- Check for converted file. Size > 0 means a successful conversion. --->
 	<cfif FileExists(outputFilePath)>
 		<cfif arguments.Extension EQ "flv">
@@ -167,12 +167,12 @@
 		<cfset ConvertedFileSize = sConvertedFileInfo.Size>
 	</cfif>
 	<cfset ConversionSuccessful = (ConvertedFileSize GT 0)>
-	
+
 	<cfif NOT ConversionSuccessful>
 		<cfset ErrorMsg = variables.FileMgr.readFile("errors.log","video_converter/logs")>
 		<cfthrow type="VideoConverter" message="The file conversion was unsuccessful. #ErrorMsg#">
 	</cfif>
-	
+
 	<cfreturn outputFilePath>
 </cffunction>
 
@@ -180,14 +180,14 @@
 	<cfargument name="Component" type="any" required="yes" hint="The calling component.">
 	<cfargument name="Args" type="struct" required="yes" hint="The incoming arguments to the calling method.">
 	<cfargument name="extensions" type="string" default="mp4,ogv,webm">
-	
+
 	<cfset var sFields = Arguments.Component.getFieldsStruct()>
 	<cfset var sSources = StructNew()>
 	<cfset var key = "">
 	<cfset var format = "">
 	<cfset var format2 = "">
 	<cfset var fails = 0>
-	
+
 	<!--- Find all source videos and their related videos --->
 	<cfloop collection="#sFields#" item="key">
 		<cfif
@@ -212,7 +212,7 @@
 			<cfset sSources[sFields[key].original] = ListAppend(sSources[sFields[key].original],sFields[key].name)>
 		</cfif>
 	</cfloop>
-	
+
 		<cfloop collection="#sSources#" item="key">
 			<cfif StructKeyExists(Arguments.Args,key) AND isSimpleValue(Arguments.Args[key]) AND Len(Arguments.Args[key])>
 				<cfset fails = 0>
@@ -249,14 +249,14 @@
 				</cfloop>
 			</cfif>
 		</cfloop>
-	
+
 	<cfreturn Arguments.Args>
 </cffunction>
 
 <cffunction name="generateVideoThumb" access="public" returntype="string" output="no" hint="I generate a Video thumbnail JPEG.">
 	<cfargument name="VideoFilePath" type="string" required="yes" hint="The full path to the video from which a thumbnail image will be created.">
 	<cfargument name="ThumbFolder" type="string" required="yes" hint="The folder in which to place the resulting thumbnail image (Ideally with the same name as the video, but with a different file extension).">
-	
+
 	<!--- convert the file --->
 	<cfset var oRuntime = "">
 	<cfset var command = "">
@@ -266,7 +266,7 @@
 	<cfset var result = "">
 	<cfset var ThumbFileName = getFileFromPath(ListDeleteAt(Arguments.VideoFilePath,ListLen(Arguments.VideoFilePath,"."),".") & ".jpg")>
 	<cfset var ExePath = getExecutablePath()>
-	
+
 	<!--- Determine the image path --->
 	<cfset Arguments.ThumbFilePath = Variables.FileMgr.createUniqueFileName(Variables.FileMgr.getFilePath(ThumbFileName,Arguments.ThumbFolder))>
 
@@ -283,7 +283,7 @@
 		sResults.status = e;
 	}
 	</cfscript>
-	
+
 	<!--- Check for generated image file. Size > 0 means a successful gen. --->
 	<cfif FileExists(Arguments.ThumbFilePath)>
 		<cfset sImageFileInfo = GetFileInfo(Arguments.ThumbFilePath)>
@@ -291,67 +291,117 @@
 			<cfset result = Arguments.ThumbFilePath>
 		</cfif>
 	</cfif>
-	
+
 	<cfreturn result>
 </cffunction>
 
 <cffunction name="getExecutablePath" access="public" returntype="string" output="no" hint="I get the ffmpeg executable path.">
-	
-	<cfset var arch = "">
+
+	<cfset var platform = getPlatform()>
 	<cfset var ExePath = "">
 
-	<!---
-	Server variables reference:
-	http://lopica.sourceforge.net/os.html
-	
-	os.arch warning:
-	http://mark.koli.ch/2009/10/javas-osarch-system-property-is-the-bitness-of-the-jre-not-the-operating-system.html
-	os.arch solution?:
-	http://mark.koli.ch/2009/10/reliably-checking-os-bitness-32-or-64-bit-on-windows-with-a-tiny-c-app.html
-	
-	Linux static ffmpeg builds:
-	http://ffmpeg.gusari.org/static/
-	--->
+	<cfif platform.OS EQ "Windows">
 
-	<cfif StructKeyExists(Server.os,"name")>
-	
-	<!--- Do we really need to test for existence of Server.os.name and Server.os.arch? --->
-		
-		<cfif Server.os.name CONTAINS "Windows">
-		
-			<cfif StructKeyExists(Server.os,"arch") && FindNoCase('x86',Server.os.arch) >
-				<cfset arch = "x86">
-			</cfif>
-			<cfset ExePath = "#Variables.LibraryPath#ffmpeg#arch#.exe">
-			
-		<cfelseif Server.os.name EQ "UNIX">
-		
-			<cfif StructKeyExists(Server.os,"arch") && (FindNoCase('64',Server.os.arch) OR FindNoCase('i686',Server.os.arch)) >
-				<cfset arch = "64">
-			</cfif>
-			<cfset ExePath = '#Variables.LibraryPath#ffmpeg#arch#linux'>
-			
+		<cfif platform.Arch EQ 64>
+			<cfset ExePath = Variables.LibraryPath & "ffmpeg.exe">
+		<cfelse>
+			<cfset ExePath = Variables.LibraryPath & "ffmpegx86.exe">
 		</cfif>
-		
+
+	<cfelseif platform.OS EQ "UNIX">
+
+		<cfif platform.Arch EQ 64>
+			<cfset ExePath = Variables.LibraryPath & "ffmpeglinux">
+		<cfelse>
+			<cfset ExePath = Variables.LibraryPath & "ffmpeg64linux">
+		</cfif>
+
 	</cfif>
-	
+
 	<cfreturn ExePath>
+</cffunction>
+
+<!---
+Server variables reference:
+http://lopica.sourceforge.net/os.html
+
+os.arch warning:
+http://mark.koli.ch/2009/10/javas-osarch-system-property-is-the-bitness-of-the-jre-not-the-operating-system.html
+os.arch solution?:
+http://mark.koli.ch/2009/10/reliably-checking-os-bitness-32-or-64-bit-on-windows-with-a-tiny-c-app.html
+
+Linux static ffmpeg builds:
+http://ffmpeg.gusari.org/static/
+--->
+<cffunction name="getPlatform" access="public" returntype="struct" output="no" hint="I return OS and the architure of the OS (32 or 64 bit)">
+	<cfset var TextFile = Variables.FileMgr.getFilePath("bitness.txt","video_converter")>
+	<cfset var platform = {}>
+	<cfset var bitness = "">
+
+	<cfset platform['OS']   = "unknown">
+	<cfset platform['Arch'] = "unknown">
+
+	<cfif Server.os.name CONTAINS 'Windows'>
+		<cfset platform['OS'] = "Windows">
+
+		<!--- read Variables.bitness --->
+		<cfif structKeyExists(Variables, "bitness")>
+			<cfif val(Variables.bitness) EQ 64 or val(Variables.bitness) EQ 32>
+				<cfset platform['Arch'] = val(Variables.bitness)>
+			</cfif>
+
+		<!--- Variables.bitness DOES NOT exists read file --->
+		<cfelseif FileExists(TextFile)>
+			<cffile action="read" file="#TextFile#" variable="bitness">
+
+			<cfif val(bitness) EQ 32 or val(bitness) EQ 64>
+				<cfset Variables['bitness'] = val(bitness)>
+				<cfset platform['Arch'] = val(bitness)>
+			</cfif>
+		</cfif>
+
+		<!--- file DOES NOT exists or Variables.bitness corrupt --->
+		<cfif platform.Arch EQ "unknown">
+			<cfexecute name="#Variables.LibraryPath#bitness-checker.exe" variable="bitness" timeout="2"/>
+
+			<cfif val(bitness) EQ 32 or val(bitness) EQ 64>
+				<cffile action="write" file="#TextFile#" output="#bitness#">
+				<cfset Variables['bitness'] = val(bitness)>
+				<cfset platform['Arch'] = val(bitness)>
+			</cfif>
+		</cfif>
+
+		<cfif platform.Arch EQ "unknown">
+			<cfthrow message="Unable to determine the platform arch type" type="VideoConverter">
+		</cfif>
+
+	<cfelseif Server.os.name EQ 'UNIX'>
+		<cfset platform['OS'] = "UNIX">
+
+		<cfif StructKeyExists(Server.os,"arch") && (FindNoCase('64',Server.os.arch) OR FindNoCase('i686',Server.os.arch)) >
+			<cfset platform['Arch'] = 64>
+		<cfelse>
+			<cfset platform['Arch'] = 32>
+		</cfif>
+	</cfif>
+
+	<cfreturn platform>
 </cffunction>
 
 <cffunction name="getVideoFileNames" access="private" returntype="string" output="false" hint="I return a list of file fields based on a file name (based on how modifyXml creates fields).">
 	<cfargument name="FileField" type="string" required="no" hint="The field in the query representing the video.">
-	
+
 	<cfset var result = "">
 	<cfset var format = "">
-	
+
 	<!---<cfset result = ListAppend(result,"#Arguments.FileField#")>--->
 	<!---<cfset result = ListAppend(result,"#Arguments.FileField#URL")>--->
-	
+
 	<cfloop list="#Variables.VideoFormats#" index="format">
 		<!---<cfset result = ListAppend(result,"#Arguments.FileField##format#")>--->
 		<cfset result = ListAppend(result,"#Arguments.FileField##format#")>
 	</cfloop>
-	
+
 	<cfreturn result>
 </cffunction>
 
@@ -360,16 +410,16 @@
 	<cfargument name="Component" type="any" required="true" hint="The Records component for this video.">
 	<cfargument name="Record" type="any" required="yes" hint="The record for this video.">
 	<cfargument name="row" type="numeric" default="1">
-	
+
 	<cfset var cols = getVideoFileNames(Arguments.FileField)>
 	<cfset var oRecord = Arguments.Component.RecordObject(Record=Arguments.Record,row=Arguments.row,fields=cols)>
 	<cfset var col = "">
 	<cfset var result = "">
-	
+
 	<cfloop list="#cols#" index="col">
 		<cfset result = ListAppend(result,oRecord.get("#col#URL"))>
 	</cfloop>
-	
+
 	<cfreturn result>
 </cffunction>
 
@@ -378,23 +428,23 @@
 	<cfargument name="Component" type="any" required="true" hint="The Records component for this video.">
 	<cfargument name="Record" type="any" required="yes" hint="The record for this video.">
 	<cfargument name="row" type="numeric" default="1">
-	
+
 	<cfset var sResult = StructNew()>
 	<cfset var sFields = Arguments.Component.getFieldsStruct()>
 	<cfset var sField = StructCopy(sFields[Arguments.FileField])>
 	<cfset var oRecord = Arguments.Component.RecordObject(Record=Arguments.Record,row=Arguments.row)>
-	
+
 	<cfset sResult["width"] = "">
 	<cfset sResult["height"] = "">
-	
+
 	<cfif NOT StructKeyExists(sField,"width")>
 		<cfset sField["width"] = "#Arguments.FileField#Width">
 	</cfif>
-	
+
 	<cfif NOT StructKeyExists(sField,"height")>
 		<cfset sField["height"] = "#Arguments.FileField#Height">
 	</cfif>
-	
+
 	<cfif isNumeric(sField.width)>
 		<cfset sResult["width"] = sField.width>
 	<cfelseif StructKeyExists(sFields,sField["width"])>
@@ -404,7 +454,7 @@
 			<cfset sResult["width"] = sFields[sField["width"]]["default"]>
 		</cfif>
 	</cfif>
-	
+
 	<cfif isNumeric(sField.height)>
 		<cfset sResult["height"] = sField.height>
 	<cfelseif StructKeyExists(sFields,sField["height"])>
@@ -414,7 +464,7 @@
 			<cfset sResult["height"] = sFields[sField["height"]]["default"]>
 		</cfif>
 	</cfif>
-	
+
 	<cfreturn sResult>
 </cffunction>
 
@@ -426,9 +476,9 @@
 	<cfargument name="Title" type="string" default="video">
 	<cfargument name="Controls" type="boolean" default="true">
 	<cfargument name="AutoPlay" type="boolean" default="true">
-	
+
 	<cfset var sSize = getVideoSize(ArgumentCollection=Arguments)>
-	
+
 	<cfset Arguments["VideoFiles"] = getVideoFiles(ArgumentCollection=Arguments)>
 	<cfif isNumeric(sSize["Width"]) AND Val(sSize["Width"])>
 		<cfset Arguments["Width"] = sSize["Width"]>
@@ -436,7 +486,7 @@
 	<cfif isNumeric(sSize["Height"]) AND Val(sSize["Height"])>
 		<cfset Arguments["Height"] = sSize["Height"]>
 	</cfif>
-	
+
 	<cfreturn getVideoHTML(ArgumentCollection=Arguments)>
 </cffunction>
 
@@ -447,22 +497,22 @@
 	<cfargument name="Title" type="string" default="video">
 	<cfargument name="Controls" type="boolean" default="true">
 	<cfargument name="AutoPlay" type="boolean" default="true">
-	
+
 	<cfset var result = "">
 	<cfset var sVideos = StructNew()>
 	<cfset var FileURL = "">
 	<cfset var ext = "">
 	<cfset var useVideoElement = false>
 	<cfset var flashvars = "">
-	
+
 	<cfif NOT StructKeyExists(Arguments,"Width")>
 		<cfset Arguments.Width = "">
 	</cfif>
-	
+
 	<cfif NOT StructKeyExists(Arguments,"Height")>
 		<cfset Arguments.Height = "">
 	</cfif>
-	
+
 	<cfloop list="#Arguments.VideoFiles#" index="FileURL">
 		<cfset ext = LCase(ListLast(FileURL,"."))>
 		<cfswitch expression="#ext#">
@@ -477,11 +527,11 @@
 		</cfdefaultcase>
 		</cfswitch>
 	</cfloop>
-	
+
 	<cfset flashvars = "autoplay=#TrueFalseFormat(Arguments.AutoPlay)#&amp;controls=#TrueFalseFormat(Arguments.Controls)#&amp;loop=false&amp;src=#sVideos.mp4#">
-	
+
 	<cfset useVideoElement = ( StructKeyExists(sVideos,"mp4") OR StructKeyExists(sVideos,"webm") OR StructKeyExists(sVideos,"ogg") )>
-	
+
 	<!--- http://camendesign.com/code/video_for_everybody --->
 	<!--- http://videojs.com/ --->
 	<!--- first try HTML5 playback: if serving as XML, expand `controls` to `controls="controls"` and autoplay likewise --->
@@ -521,14 +571,14 @@
 		<a href="#sVideos.ogg#">Ogg</a></cfif>
 	</p></cfif>
 	</div></cfoutput></cfsavecontent>
-	
+
 	<cfreturn result>
 </cffunction>
 
-<cffunction name="getVideoInfo" access="public" returntype="struct" output="false">	
+<cffunction name="getVideoInfo" access="public" returntype="struct" output="false">
 	<cfargument name="file" type="string" required="yes">
-	
-	<cfscript>		
+
+	<cfscript>
 	var VideoInfo = StructNew();
 	var ffmpegOut = "";
 	var command = "";
@@ -546,14 +596,14 @@
 	VideoInfo.duration = '';
 	VideoInfo.seconds = 0;
 	VideoInfo.format = 'unknown';
-	VideoInfo.bitrate = 0;	
+	VideoInfo.bitrate = 0;
 
 	if (NOT fileExists(file)) { return VideoInfo; }
 	VideoInfo.fileExists = true;
 	VideoInfo.fileSize = createObject("java", "java.io.File").init("#Arguments.file#").length();
 	if ( VideoInfo.FileSize eq 0) { return VideoInfo; }
 	//if(StructKeyExists(Server.os,"arch") && FindNoCase('x86',Server.os.arch)){ arch = "x86";}
-	
+
 	oRuntime = CreateObject("java", "java.lang.Runtime").getRuntime();
 	command = '#ExePath# -i "#Arguments.file#"';
 	process = oRuntime.exec(#command#);
@@ -565,7 +615,7 @@
     	ffmpegOut = ffmpegOut & line;
         line = buffered.readLine();
     }
-    
+
 	// check file type
 	if (FindNoCase('Unknown format',ffmpegOut,1))
 		{ return VideoInfo; }
@@ -582,7 +632,7 @@
 	//VideoInfo.seconds = ListGetAt(VideoInfo.duration,1,':') * 3600;
 	//VideoInfo.seconds = VideoInfo.seconds + ListGetAt(VideoInfo.duration,2,':') * 60;
 	//VideoInfo.seconds = VideoInfo.seconds + ListGetAt(VideoInfo.duration,3,':');
-	
+
 	// get bitrate
 	VideoInfo.Bitrate = REFindNoCase('bitrate: \d+ kb/s',ffmpegOut,1,true);
 	if (VideoInfo.Bitrate.len[1] GT 0) {
@@ -590,7 +640,7 @@
 	} else {
 		StructDelete(VideoInfo,"Bitrate");
 	}
-	
+
 	//get frame rate
 	VideoInfo.Framerate = REFindNoCase('\d+ tbr',ffmpegOut,1,true);
 	if (VideoInfo.Framerate.len[1] GT 0) {
@@ -598,7 +648,7 @@
 	} else {
 		StructDelete(VideoInfo,"Framerate");
 	}
-	
+
 	// get audio bitrate
 	VideoInfo.AudioBitrate = REFindNoCase('Audio: .+? \d+ kb/s',ffmpegOut,1,true);
 	if (VideoInfo.AudioBitrate.len[1] GT 0) {
@@ -609,11 +659,11 @@
 	} else {
 		StructDelete(VideoInfo,"AudioBitrate");
 	}
-	
+
 	// get audio codec
 	//VideoInfo.AudioCodec = REFindNoCase('Audio: .+?,',ffmpegOut,1,true);
 	//VideoInfo.AudioCodec = Mid(ffmpegOut,VideoInfo.AudioCodec.pos[1]+7,VideoInfo.AudioCodec.len[1]-8);
-	
+
 	return VideoInfo;
 	</cfscript>
 </cffunction>
@@ -622,7 +672,7 @@
 	<cfargument name="xml" type="string" required="yes" hint="This XML to be modified.">
 	<cfargument name="SourceVideoFile" type="string" required="yes" hint="The original video file.">
 	<cfargument name="FileTypes" type="string" default="mp4,ogg,swf,webm" hint="A list of file extensions to add as new fields.">
-	
+
 	<cfset var result = "">
 	<cfset var XmlObj = 0>
 	<cfset var ii = 0>
@@ -631,59 +681,59 @@
 	<cfset var AllFileExtensions = "">
 	<cfset var AllMimeTypes = "">
 	<cfset var xTable = 0>
-	
-	<!--- Mime types supported by modifyXml() --->	
-	<cfset var MimeTypes = ArrayNew(1)>	
-	<cfset MimeTypes[1] = 
+
+	<!--- Mime types supported by modifyXml() --->
+	<cfset var MimeTypes = ArrayNew(1)>
+	<cfset MimeTypes[1] =
 			{
 				extension="avi",
 				type="video/avi,video/msvideo,video/x-msvideo"
 			}>
-	<cfset MimeTypes[2] = 
+	<cfset MimeTypes[2] =
 			{
 				extension="flv",
 				type="video/x-flv"
 			}>
-	<cfset MimeTypes[3] = 
+	<cfset MimeTypes[3] =
 			{
 				extension="mp4,mpeg,mpg",
 				type="video/mp4,video/mpeg"
 			}>
-	<cfset MimeTypes[4] = 
+	<cfset MimeTypes[4] =
 			{
 				extension="ogg,ogv",
 				type="application/ogg,video/ogg"
 			}>
-	<cfset MimeTypes[5] = 
+	<cfset MimeTypes[5] =
 			{
 				extension="swf",
 				type="application/x-shockwave-flash"
 			}>
-	<cfset MimeTypes[6] = 
+	<cfset MimeTypes[6] =
 			{
 				extension="webm",
 				type="video/webm"
 			}>
-	
+
 	<cfif NOT isXml(Arguments.xml)>
 		<cfthrow message="The xml argument of modifyXml must be a valid string" type="VideoConverter">
 	</cfif>
-	
+
 	<cfset XmlObj = XmlParse(Arguments.xml)>
-	
+
 	<cfset axSourceField = XmlSearch(XmlObj, "//field[@name='#Arguments.SourceVideoFile#']")>
-	
+
 	<cfif NOT ArrayLen(axSourceField)>
 		<cfthrow message="The field '#Arguments.SourceVideoFile#' was not found in the XML. Add the field and try again." type="VideoConverter">
 	</cfif>
-	
+
 	<cfset xTable = axSourceField[1].XmlParent>
-	
+
 	<!--- Xpath expression to calculate the position of the field tag with attribute 'name' same as arguments.SourceVideoFile
 		If not found returns 1, so that a new element <field Name='SourceVideoFile'> is inserted
  	--->
 	<cfset FieldTagPosition =  XmlSearch(XmlObj,"count(//field[@name='#Arguments.SourceVideoFile#']/preceding-sibling::*)+1")>
-	
+
 	<cfloop list="#Arguments.FileTypes#" index="ii">
 		<cfset FieldTagPosition = FieldTagPosition + 1>
 		<cfset FileExtension = "">
@@ -703,7 +753,7 @@
 		<cfset xTable.XmlChildren[FieldTagPosition].XmlAttributes["original"] = "#Arguments.SourceVideoFile#">
 		<cfset xTable.XmlChildren[FieldTagPosition].XmlAttributes["Folder"] = "#Arguments.SourceVideoFile#,#LCase(ii)#">
 	</cfloop>
-	
+
 	<!--- Insert "Accept" and "Extensions" attributes to source video field --->
 	<cfloop from="1" to="#ArrayLen(MimeTypes)#" index="jj">
 		<cfset AllFileExtensions = ListAppend(AllFileExtensions, MimeTypes[jj].extension) >
@@ -721,9 +771,9 @@
 	<cfif NOT StructKeyExists(axSourceField[1].XmlAttributes,"Extensions")>
 		<cfset axSourceField[1].XmlAttributes["Extensions"] = AllFileExtensions>
 	</cfif>
-	
+
 	<cfset result = ToString(XmlObj)>
-	
+
 	<cfreturn result>
 </cffunction>
 
@@ -731,7 +781,7 @@
     <cfargument name="in" type="any" required="true" hint="java.io.InputStream object">
 	<cfargument name="sendToFile" type="boolean" hint="Send this video stream to file?" default="false">
 	<cfargument name="isErrorStream" type="boolean" hint="Is this an error stream?" default="false">
-	
+
 	<cfset var out = "">
 	<cfset var writer = "">
 	<cfset var reader = "">
@@ -739,7 +789,7 @@
 	<cfset var line = "">
 	<cfset var errorFound = false>
 	<cfset var errorToThrow = "">
-	
+
 	<cfscript>
 	if ( Arguments.sendToFile ) {
 		if (arguments.isErrorStream) {
@@ -749,7 +799,7 @@
 		}
 		writer = CreateObject("java", "java.io.PrintWriter").init(out);
 	}
-	
+
 	reader = CreateObject("java", "java.io.InputStreamReader").init(Arguments.in);
 	buffered = CreateObject("java", "java.io.BufferedReader").init(reader);
 	line = buffered.readLine();
@@ -758,7 +808,7 @@
 			writer.println(line);
 		}
 		line = buffered.readLine();
-	} 
+	}
 	if ( Arguments.sendToFile ) {
 		errorFound = writer.checkError();
 		writer.flush();
@@ -772,12 +822,12 @@
 
 <cffunction name="addMetaData" access="private" returntype="void" output="no" hint="I add meta data to a Video.">
 	<cfargument name="FilePath" type="string" required="yes">
-	
+
 	<cfset var oRuntime = 0>
 	<cfset var command = "">
 	<cfset var process = 0>
 	<cfset var sResults = StructNew()>
-	
+
 	<cfscript>
 	try {
 		oRuntime = CreateObject("java", "java.lang.Runtime").getRuntime();
@@ -787,7 +837,7 @@
 	catch(exception e) {
 		sResults.status = e;
 	}
-	</cfscript>	
+	</cfscript>
 
 </cffunction>
 
@@ -812,7 +862,7 @@ function TrueFalseFormat(value) {
 * @version 1, February 21, 2002
 */
 	var datetime = 0;
-	
+
 	if (ArrayLen(Arguments) is 0) {
 		datetime = Now();
 	}
@@ -823,12 +873,12 @@ function TrueFalseFormat(value) {
 			return NULL;
 		}
 	}
-	
+
 	return DateDiff("s", "January 1 1970 00:00", datetime);
 </cfscript>
 </cffunction>
 <!---
 References:
-http://www.frieswiththat.com.au/post.cfm/coldfusion-ffmpeg-video-conversion-plus-thumbnails	
+http://www.frieswiththat.com.au/post.cfm/coldfusion-ffmpeg-video-conversion-plus-thumbnails
 --->
 </cfcomponent>
