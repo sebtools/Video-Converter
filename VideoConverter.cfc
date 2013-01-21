@@ -311,9 +311,9 @@
 	<cfelseif platform.OS EQ "UNIX">
 
 		<cfif platform.Arch EQ 64>
-			<cfset ExePath = Variables.LibraryPath & "ffmpeglinux">
-		<cfelse>
 			<cfset ExePath = Variables.LibraryPath & "ffmpeg64linux">
+		<cfelse>
+			<cfset ExePath = Variables.LibraryPath & "ffmpeglinux">
 		</cfif>
 
 	</cfif>
