@@ -137,7 +137,7 @@
 
 	<cfset Variables.FileMgr.makeFolder(Arguments.Folder)>
 	<cfset Arguments.outputFilePath = Variables.FileMgr.getDirectory(arguments.Folder) & ListFirst(ListLast(getFileFromPath(arguments.VideoFilePath),"/"),".") & "." & arguments.Extension>
-	<cfset Arguments.outputFilePath = Variables.FileMgr.createUniqueFileName(outputFilePath)>
+	<cfset Arguments.outputFilePath = Variables.FileMgr.createUniqueFileName(Arguments.outputFilePath)>
 
 	<cfset command = getConversionCommand(ArgumentCollection=Arguments)>
 
@@ -159,11 +159,11 @@
 	</cfscript>
 
 	<!--- Check for converted file. Size > 0 means a successful conversion. --->
-	<cfif FileExists(outputFilePath)>
+	<cfif FileExists(Arguments.outputFilePath)>
 		<cfif arguments.Extension EQ "flv">
-			<cfset addMetaData(outputFilePath)>
+			<cfset addMetaData(Arguments.outputFilePath)>
 		</cfif>
-		<cfset sConvertedFileInfo = GetFileInfo(outputFilePath)>
+		<cfset sConvertedFileInfo = GetFileInfo(Arguments.outputFilePath)>
 		<cfset ConvertedFileSize = sConvertedFileInfo.Size>
 	</cfif>
 	<cfset ConversionSuccessful = (ConvertedFileSize GT 0)>
@@ -173,7 +173,7 @@
 		<cfthrow type="VideoConverter" message="The file conversion was unsuccessful. #ErrorMsg#">
 	</cfif>
 
-	<cfreturn outputFilePath>
+	<cfreturn Arguments.outputFilePath>
 </cffunction>
 
 <cffunction name="formatVideos" access="public" returntype="struct" output="no" hint="I reproduce any videos in the needed formats." todo="steve">
