@@ -68,7 +68,6 @@
 		<cfset Arguments.outputFilePath = Variables.FileMgr.createUniqueFileName(outputFilePath)>
 	</cfif>
 
-
 	<!--- value returned in VideoInfo is kb/s --->
 	<cfif StructKeyExists(VideoInfo,"BitRate")>
 		<cfset bitrate = VideoInfo.BitRate & "k">
@@ -88,8 +87,10 @@
 	<cfswitch expression="#Arguments.extension#">
 	<cfcase value="mp4">
 		<!---<cfset command = '#ExePath# -i "#arguments.VideoFilePath#" -acodec aac -ac 2 -ab 160k -vcodec libx264 -vpre slow -f mp4 -crf 22 "#outputFilePath#"'>--->
-		<cfset command = '#ExePath# -i "#arguments.VideoFilePath#" -b 1500k -vcodec libx264 -vpre slow -vpre baseline -g 30 "#outputFilePath#"'>
-		<cfset command = '#ExePath# -i "#arguments.VideoFilePath#" -g 300 -y -b:v #bitrate# -b:a #audiobitrate# -r #framerate# -ar 44100 "#outputFilePath#"'><!---  -s qvga --->
+		<!--- <cfset command = '#ExePath# -i "#arguments.VideoFilePath#" -b 1500k -vcodec libx264 -vpre slow -vpre baseline -g 30 "#outputFilePath#"'> --->
+		<!--- <cfset command = '#ExePath# -i "#arguments.VideoFilePath#" -g 300 -y -b:v #bitrate# -b:a #audiobitrate# -r #framerate# -ar 44100 "#outputFilePath#"'> ---><!---  -s qvga --->
+
+		<cfset command = '#ExePath# -i #arguments.VideoFilePath# -y -f mp4 -r 29.97 -vcodec libx264 -flags +loop -cmp +chroma -deblock 0:0 -b:v 1250k -maxrate 1500k -bufsize 4M -bt 256k -refs 1 -bf 3 -coder 1 -me_method umh -me_range 16 -subq 7 -partitions +parti4x4+parti8x8+partp8x8+partb8x8 -g 250 -keyint_min 25 -level 30 -qmin 10 -qmax 51 -qcomp 0.6 -trellis 2 -sc_threshold 40 -i_qfactor 0.71 -b_strategy 2 -qdiff 4 -direct-pred 3 -wpredp 2 -rc_lookahead 50 -acodec libvo_aacenc -b:a 112k -ar 48000 -ac 2 "#outputFilePath#"'>
 	</cfcase>
 	<cfcase value="ogg,ogv">
 		<cfset ExePath = "#Variables.LibraryPath#ffmpeg2theora.exe">
@@ -99,7 +100,8 @@
 		<cfset command = '#ExePath# -i "#arguments.VideoFilePath#" "#outputFilePath#"'>
 	</cfcase>
 	<cfcase value="webm">
-		<cfset command = '#ExePath# -i "#arguments.VideoFilePath#"  -b 1500k -vcodec libvpx -acodec libvorbis -ab 160000 -f webm -g 30 "#outputFilePath#"'>
+		<!--- <cfset command = '#ExePath# -i "#arguments.VideoFilePath#"  -b 1500k -vcodec libvpx -acodec libvorbis -ab 160000 -f webm -g 30 "#outputFilePath#"'> --->
+		<cfset command = '#ExePath# -i #arguments.VideoFilePath# -y -f webm -vcodec libvpx -r 13 -g 120 -level 216 -profile:v 0 -qmax 42 -qmin 10 -rc_buf_aggressivity 0.95 -vb 480k -acodec libvorbis -b:a 96000 -aq 90 -ac 2 "#outputFilePath#"'>
 	</cfcase>
 	<cfdefaultcase>
 		<!--- command = '#Variables.LibraryPath#ffmpeg.exe -i "#arguments.VideoFilePath#" -g 300 -y -s qvga -map_meta_data "#outputFilePath#:#arguments.VideoFilePath#" -b:v #bitrate# -b:a #audiobitrate# -r #framerate# -ar 44100 "#outputFilePath#"'; --->
@@ -140,6 +142,8 @@
 	<cfset Arguments.outputFilePath = Variables.FileMgr.createUniqueFileName(Arguments.outputFilePath)>
 
 	<cfset command = getConversionCommand(ArgumentCollection=Arguments)>
+
+	<cflog file="video" application="no" text="#command#">
 
 	<cfscript>
 	//try {
@@ -539,7 +543,7 @@ http://ffmpeg.gusari.org/static/
 	<cfsavecontent variable="result"><cfoutput><div class="video-js-box"><cfif useVideoElement>
 	<video width="#Arguments.Width#" height="#Arguments.Height#"<cfif Arguments.Controls> controls="controls"</cfif><cfif Arguments.AutoPlay> autoplay="autoplay"</cfif>><cfif StructKeyExists(sVideos,"mp4")><!--- MP4 must be first for iPad! --->
 		<source src="#sVideos.mp4#" type="video/mp4" /><!--- Safari / iOS video    ---></cfif><cfif StructKeyExists(sVideos,"webm")>
-		<!---<source src="#sVideos.webm#" type="video/webm" />---><!--- Firefox / Opera / Chrome10 ---></cfif><cfif StructKeyExists(sVideos,"ogg")>
+		<source src="#sVideos.webm#" type="video/webm" /><!--- Firefox / Opera / Chrome10 ---></cfif><cfif StructKeyExists(sVideos,"ogg")>
 		<source src="#sVideos.ogg#" type="video/ogg" /><!--- Firefox / Opera / Chrome10 ---></cfif></cfif><cfif StructKeyExists(sVideos,"swf")><!--- fallback to Flash: --->
 		<object width="#Arguments.Width#" height="#Arguments.Height#" type="application/x-shockwave-flash" data="#Variables.VideoPlayerURL#"><!--- Firefox uses the "data" attribute above, IE/Safari uses the param below --->
 			<param name="movie" value="#Variables.VideoPlayerURL#" />
@@ -562,7 +566,30 @@ http://ffmpeg.gusari.org/static/
 				flashvars="#flashvars#"
 			><cfif StructKeyExists(sVideos,"jpg")>
 			<img src="#sVideos.jpg#" width="#Arguments.Width#" height="#Arguments.Height#" alt="#Arguments.Title#" title="No video playback capabilities, please download the video below" /></cfif>
-		</object><cfelseif StructKeyExists(sVideos,"jpg")>
+		</object><cfelseif StructKeyExists(sVideos,"mp4")>
+		<object width="#Arguments.Width#" height="#Arguments.Height#" type="application/x-shockwave-flash" data="/f/videos/flashfox.swf">
+			<param name="movie" value="/f/videos/flashfox.swf" />
+			<param name="quality" value="high" />
+			<param name="allowFullScreen" value="true" />
+			<param name="wmode" value="window" />
+			<param name="allowScriptAccess" value="sameDomain" />
+			<param name="loop" value="false" />
+			<param name="flashVars" value="#flashvars#" />
+			<embed
+				type="application/x-shockwave-flash"
+				width="#Arguments.Width#"
+				height="#Arguments.Height#"
+				src="/f/videos/flashfox.swf"
+				quality="high"
+				allowFullScreen="true"
+				wmode="window"
+				allowScriptAccess="sameDomain"
+				loop="false"
+				flashvars="#flashvars#"
+			><cfif StructKeyExists(sVideos,"jpg")>
+			<img src="#sVideos.jpg#" width="#Arguments.Width#" height="#Arguments.Height#" alt="#Arguments.Title#" title="No video playback capabilities, please download the video below" /></cfif>
+		</object>
+		<cfelseif StructKeyExists(sVideos,"jpg")>
 		<img src="#sVideos.jpg#" width="#Arguments.Width#" height="#Arguments.Height#" alt="#Arguments.Title#" title="No video playback capabilities, please download the video below" /></cfif><cfif useVideoElement>
 	</video><!--- you *must* offer a download link as they may be able to play the file locally. customise this bit all you want --->
 	<p class="vjs-no-video">	<strong>Download Video:</strong><cfif StructKeyExists(sVideos,"mp4")>
@@ -692,7 +719,7 @@ http://ffmpeg.gusari.org/static/
 	<cfset MimeTypes[2] =
 			{
 				extension="flv",
-				type="video/x-flv"
+				type="video/x-flv,application/octet-stream"
 			}>
 	<cfset MimeTypes[3] =
 			{
