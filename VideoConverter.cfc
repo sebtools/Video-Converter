@@ -328,6 +328,10 @@
 		<cfset ExePath = Variables.LibraryPath & "ffmpegosx">
 
 	</cfif>
+	
+	<cfif ExePath EQ "">
+		<cfthrow type="VideoConverter" message="Could not choose executable for #platform.os# #platform.arch#" />
+	</cfif>
 
 	<cfreturn ExePath>
 </cffunction>
