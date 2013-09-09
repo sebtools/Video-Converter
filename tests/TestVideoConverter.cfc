@@ -8,25 +8,32 @@
 </cffunction>--->
 
 <cffunction name="setUp" access="public" returntype="any" output="no">
-	
-	<cfset loadExternalVars("VideoConverter")>
-	
-	<cfset Variables.TestPath = getDirectoryFromPath(getCurrentTemplatePath())>
-	<cfset Variables.dirdelim = Right(Variables.TestPath,1)>
-	
-	<cfset Variables.sTestFiles = {
-		flv = "barsandtone.flv",
-		mov = "barsandtone.mov",
-		mp4 = "barsandtone.mp4",
-		ogg = "barsandtone.ogv",
-		ogv = "barsandtone.ogv",
-		swf = "barsandtone.swf",
-		webm = "barsandtone.webm",
-		avi = "barsandtone.avi"
-	}>
-	
+	<cfsetting requesttimeout="333" />
+	<cfscript>
+		workpath = expandPath("/tests/work/");
+		directoryExists(workpath) ? directoryDelete(workpath,true) : "";
+		directoryCreate(workpath);
+
+		Variables.TestPath = getDirectoryFromPath(getMetadata(this).path);
+		Variables.dirdelim = Right(Variables.TestPath,1);
+		
+		Variables.FileMgr = CreateObject("component","video-converter.FileMgr").init(workpath,"/f/");
+		Variables.VideoConverter = CreateObject("component","video-converter.VideoConverter").init(Variables.FileMgr);	
+
+		Variables.sTestFiles = {
+			flv = "barsandtone.flv",
+			mov = "barsandtone.mov",
+			mp4 = "barsandtone.mp4",
+			ogg = "barsandtone.ogv",
+			ogv = "barsandtone.ogv",
+			swf = "barsandtone.swf",
+			webm = "barsandtone.webm",
+			avi = "barsandtone.avi"
+		};
+	</cfscript>
 </cffunction>
 
+<!--- 
 <cffunction name="shouldFormatVideosCreateAllNeededFiles" access="public" returntype="any" output="no"
 	hint="The formatVideos method should create all of the files needed by any video files in the component."
 >
@@ -42,6 +49,7 @@
 	<cfset fail("This test has not yet been implemented.")>
 	
 </cffunction>
+ --->
 
 <!--- ** GetVideoHTML TESTS *** --->
 
@@ -133,50 +141,17 @@
 	<cfset var result = "">
 	
 	<cfsavecontent variable="result">
+	<?xml version="1.0" encoding="UTF-8"?>
 	<tables prefix="test">
-		<table entity="Question" Specials="CreationDate,LastUpdatedDate,Sorter">
-			<field name="RandomField" type="text" />
-			<field
-				name="Video"
-				Label="Video"
-				type="file"
-				Accept="video/avi,video/msvideo,video/x-msvideo,video/x-flv,video/mp4,video/mpeg,application/ogg,video/ogg,application/x-shockwave-flash,video/webm"
-				Extensions="avi,flv,mp4,mpeg,mpg,ogg,ogv,swf,webm"
-			/>
-			<field
-				name="VideoMP4"
-				Label="Video (.mp4)"
-				type="file"
-				Accept="video/mp4,video/mpeg"
-				Extensions="mp4,mpeg,mpg"
-				sebfield="false"
-				sebcolumn="false"
-			/><field
-				name="VideoOGG"
-				Label="Video (.ogg)"
-				type="file"
-				Accept="application/ogg,video/ogg"
-				Extensions="ogg,ogv"
-				sebfield="false"
-				sebcolumn="false"
-			/><field
-				name="VideoSWF"
-				Label="Video (.swf)"
-				type="file"
-				Accept="application/x-shockwave-flash"
-				Extensions="swf"
-				sebfield="false"
-				sebcolumn="false"
-			/><field
-				name="VideoWEBM"
-				Label="Video (.webm)"
-				type="file"
-				Accept="video/webm"
-				Extensions="webm"
-				sebfield="false"
-				sebcolumn="false"
-			/><field name="VideoWidth" label="Video Width" type="integer" help="The width of the video (in pixels)." required="true" default="320" />
-			<field name="VideoHeight" label="Video Height" type="integer" help="The height of the video (in pixels)." required="true" default="240" />
+		<table Specials="CreationDate,LastUpdatedDate,Sorter" entity="Question">
+			<field name="RandomField" type="text"/>
+			<field Accept="video/avi,video/msvideo,video/x-msvideo,video/x-flv,video/mp4,video/mpeg,application/ogg,video/ogg,application/x-shockwave-flash,video/webm,video/quicktime" Extensions="avi,flv,mp4,mpeg,mpg,ogg,ogv,swf,webm,mov" Label="Video" name="Video" type="file" video="true"/>
+			<field Accept="video/mp4,video/mpeg" Extensions="mp4,mpeg,mpg" Folder="Video,mp4" Label="Video (.mp4)" name="VideoMP4" original="Video" sebcolumn="false" sebfield="false" type="file"/>
+			<field Accept="application/ogg,video/ogg" Extensions="ogg,ogv" Folder="Video,ogg" Label="Video (.ogg)" name="VideoOGG" original="Video" sebcolumn="false" sebfield="false" type="file"/>
+			<field Accept="application/x-shockwave-flash" Extensions="swf" Folder="Video,swf" Label="Video (.swf)" name="VideoSWF" original="Video" sebcolumn="false" sebfield="false" type="file"/>
+			<field Accept="video/webm" Extensions="webm" Folder="Video,webm" Label="Video (.webm)" name="VideoWEBM" original="Video" sebcolumn="false" sebfield="false" type="file"/>
+			<field default="320" help="The width of the video (in pixels)." label="Video Width" name="VideoWidth" required="true" type="integer"/>
+			<field default="240" help="The height of the video (in pixels)." label="Video Height" name="VideoHeight" required="true" type="integer"/>
 		</table>
 	</tables>
 	</cfsavecontent>
@@ -205,9 +180,8 @@
 	hint="The modifyXml method should return the correct XML (this is a shortcut for several tests)."
 >
 	
-	<cfset var ConvertedXml = getConvertedXml()>
-	<cfset var SolvedXml = getSolvedXml()>
-	
+	<cfset var ConvertedXml = trim(rereplace(getConvertedXml(),">[\n|\s|\r]+<","><","all"))>
+	<cfset var SolvedXml = trim(rereplace(getSolvedXml(),">[\n|\s|\r]+<","><","all"))>
 	<cfset shouldModifyXmlReturnValidXml()>
 	
 	<cfset assertEquals(ToString(XmlParse(SolvedXml)),ToString(XmlParse(ConvertedXml)),"modifyXml did not return the correct XML.")>
@@ -233,7 +207,7 @@
 			<cfset VideoType = ReplaceNoCase(axFields[ii].XmlAttributes.name,"Video","","ONE")>
 			<cfswitch expression="#VideoType#">
 			<cfcase value="MP4">
-				<cfset MimeTypes = "video/mp4,video/mpeg,video/mpeg">
+				<cfset MimeTypes = "video/mp4,video/mpeg">
 				<cfset Extensions = "mp4,mpeg,mpg">
 			</cfcase>
 			<cfcase value="OGG">
@@ -298,8 +272,8 @@
 	
 	<cfset var xConverted = getParsedXml()>
 	<cfset var axField = XmlSearch(xConverted,"//field[@name='Video']")>
-	<cfset var AcceptedExtensions = "avi,flv,mp4,mpeg,mpg,ogg,ogv,swf,webm">
-	<cfset var AcceptedMimeTypes = "video/avi,video/msvideo,video/x-msvideo,video/x-flv,video/mp4,video/mpeg,application/ogg,video/ogg,application/x-shockwave-flash,video/webm">
+	<cfset var AcceptedExtensions = "avi,flv,mp4,mpeg,mpg,ogg,ogv,swf,webm,mov">
+	<cfset var AcceptedMimeTypes = "video/avi,video/msvideo,video/x-msvideo,video/x-flv,video/mp4,video/mpeg,application/ogg,video/ogg,application/x-shockwave-flash,video/webm,video/quicktime">
 	<cfset var Missing = "">
 	<cfset var Extra = "">
 	
@@ -331,13 +305,13 @@
 
 <!--- ** THUMBNAIL TESTS *** --->
 
-<cffunction name="runThumbnailTest" access="public" returntype="any" output="no">
+<cffunction name="runThumbnailTest" access="private" returntype="any" output="no">
 	<cfargument name="type" type="string" required="yes">
+	<cfargument name="Seconds" type="numeric" default="3">
 	
-	<cfset var NewFile = Variables.VideoConverter.generateVideoThumb("#Variables.TestPath##Variables.sTestFiles[Arguments.type]#","video_converter,tests")>
+	<cfset var NewFile = Variables.VideoConverter.generateVideoThumb("#Variables.TestPath##Variables.sTestFiles[Arguments.type]#","videos",Arguments.Seconds)>
 	
 	<cfif Len(NewFile) AND FileExists(NewFile)>
-		<cffile action="delete" file="#NewFile#">
 		<cfset assertEquals(ListLast(NewFile,"."),"jpg","The file did not have the appropriate file format.")>
 	<cfelse>
 		<cfset fail("The file was not created.")>
@@ -373,7 +347,7 @@
 	hint="Thumbnails should be created from OGG videos."
 >
 	
-	<cfset runThumbnailTest("ogv")>
+	<cfset runThumbnailTest("ogv",0)>
 	
 </cffunction>
 
@@ -390,17 +364,14 @@
 >
 	
 	<cfset runThumbnailTest("webm")>
-	
 </cffunction>
 
 <!--- ** CONVERSION TESTS *** --->
 
-<cffunction name="runVideoConvertTest" access="public" returntype="any" output="no">
+<cffunction name="runVideoConvertTest" access="private" returntype="any" output="no">
 	<cfargument name="from" type="string" required="yes">
 	<cfargument name="to" type="string" required="yes">
-	
-	<cfset var NewFile = Variables.VideoConverter.convertVideo("#Variables.TestPath##Variables.sTestFiles[Arguments.from]#","video_converter,tests",Arguments.to)>
-	
+	<cfset var NewFile = Variables.VideoConverter.convertVideo("#Variables.TestPath##Variables.sTestFiles[Arguments.from]#","videos",Arguments.to)>
 	<cfif Len(NewFile) AND FileExists(NewFile)>
 		<!---<cffile action="delete" file="#NewFile#">--->
 		<cfset assertEquals(ListLast(NewFile,"."),Arguments.to,"The file did not have the appropriate file format.")>
@@ -759,7 +730,7 @@
  @author Rob Brooks-Bilson (rbils@amkor.com) 
  @version 2, June 25, 2009 
 --->
-<cffunction name="listCompare" output="false" returnType="string">
+<cffunction name="listCompare" access="private" output="false" returnType="string">
        <cfargument name="list1" type="string" required="true" />
        <cfargument name="list2" type="string" required="true" />
        <cfargument name="delim1" type="string" required="false" default="," />

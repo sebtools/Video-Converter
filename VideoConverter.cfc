@@ -44,7 +44,7 @@
 	<cfreturn This>
 </cffunction>
 
-<cffunction name="getConversionCommand" access="public" returntype="string" output="no" hint="I convert a Video to the requested format. I return the file name">
+<cffunction name="getConversionCommand" access="public" returntype="array" output="no" hint="I convert a Video to the requested format. I return the file name">
 	<cfargument name="VideoFilePath" type="string" required="yes" hint="The full path to the source video.">
 	<cfargument name="Folder" type="string" required="yes" hint="The folder in which to place the new video.">
 	<cfargument name="Extension" type="string" default="flv" hint="The extension for the new file.">
@@ -58,7 +58,7 @@
 	<cfset var VideoInfo = getVideoInfo(file=arguments.VideoFilePath)>
 	<cfset var bitrate = "64k">
 	<cfset var audiobitrate = "128k">
-	<cfset var framerate = 24>
+	<cfset var framerate = "24">
 	<cfset var ExePath = getExecutablePath()>
 	<!--- <cfset var audiocodec = VideoInfo.AudioCodec> --->
 
@@ -88,22 +88,26 @@
 	<cfswitch expression="#Arguments.extension#">
 	<cfcase value="mp4">
 		<!---<cfset command = '#ExePath# -i "#arguments.VideoFilePath#" -acodec aac -ac 2 -ab 160k -vcodec libx264 -vpre slow -f mp4 -crf 22 "#outputFilePath#"'>--->
-		<cfset command = '#ExePath# -i "#arguments.VideoFilePath#" -b 1500k -vcodec libx264 -vpre slow -vpre baseline -g 30 "#outputFilePath#"'>
-		<cfset command = '#ExePath# -i "#arguments.VideoFilePath#" -g 300 -y -b:v #bitrate# -b:a #audiobitrate# -r #framerate# -ar 44100 "#outputFilePath#"'><!---  -s qvga --->
+		<cfset command = ["#ExePath#","-i","#arguments.VideoFilePath#","-b","1500k","-vcodec","libx264","-vpre","slow","-vpre","baseline","-g","30","#outputFilePath#"]>
+		<cfset command = ["#ExePath#","-i","#arguments.VideoFilePath#","-g","300","-y","-b:v","#bitrate#","-b:a","#audiobitrate#","-r","#framerate#","-ar","44100","-strict","-2","#outputFilePath#"]><!---  -s qvga --->
 	</cfcase>
 	<cfcase value="ogg,ogv">
-		<cfset ExePath = "#Variables.LibraryPath#ffmpeg2theora.exe">
-		<cfset command = '#ExePath# -o "#outputFilePath#" "#arguments.VideoFilePath#"'>
+		<cfif getPlatform().os == "Windows">
+			<cfset ExePath = "#Variables.LibraryPath#ffmpeg2theora.exe">
+			<cfset command = ["#ExePath#","-o","#outputFilePath#","#arguments.VideoFilePath#"]>
+		<cfelse>
+			<cfset command = ["#ExePath#","-i","#arguments.VideoFilePath#","-codec:v","libtheora","-qscale:v","7","-codec:a","libvorbis","-qscale:a","5","-strict","-2","#outputFilePath#"]>
+		</cfif>
 	</cfcase>
 	<cfcase value="swf">
-		<cfset command = '#ExePath# -i "#arguments.VideoFilePath#" "#outputFilePath#"'>
+		<cfset command = ["#ExePath#","-i","#arguments.VideoFilePath#","#outputFilePath#"]>
 	</cfcase>
 	<cfcase value="webm">
-		<cfset command = '#ExePath# -i "#arguments.VideoFilePath#"  -b 1500k -vcodec libvpx -acodec libvorbis -ab 160000 -f webm -g 30 "#outputFilePath#"'>
+		<cfset command = ["#ExePath#","-i","#arguments.VideoFilePath#","-b","1500k","-vcodec","libvpx","-acodec","libvorbis","-ab","160000","-f","webm","-g","30","-strict","-2","#outputFilePath#"]>
 	</cfcase>
 	<cfdefaultcase>
 		<!--- command = '#Variables.LibraryPath#ffmpeg.exe -i "#arguments.VideoFilePath#" -g 300 -y -s qvga -map_meta_data "#outputFilePath#:#arguments.VideoFilePath#" -b:v #bitrate# -b:a #audiobitrate# -r #framerate# -ar 44100 "#outputFilePath#"'; --->
-		<cfset command = '#ExePath# -i "#arguments.VideoFilePath#" -g 300 -y -b:v #bitrate# -b:a #audiobitrate# -r #framerate# -ar 44100 "#outputFilePath#"'><!---  -s qvga --->
+		<cfset command = ["#ExePath#","-i","#arguments.VideoFilePath#","-g","300","-y","-b:v","#bitrate#","-b:a","#audiobitrate#","-r","#framerate#","-ar","44100","-strict","-2","#outputFilePath#"]><!---  -s qvga --->
 	</cfdefaultcase>
 	</cfswitch>
 
@@ -138,7 +142,6 @@
 	<cfset Variables.FileMgr.makeFolder(Arguments.Folder)>
 	<cfset Arguments.outputFilePath = Variables.FileMgr.getDirectory(arguments.Folder) & ListFirst(ListLast(getFileFromPath(arguments.VideoFilePath),"/"),".") & "." & arguments.Extension>
 	<cfset Arguments.outputFilePath = Variables.FileMgr.createUniqueFileName(Arguments.outputFilePath)>
-
 	<cfset command = getConversionCommand(ArgumentCollection=Arguments)>
 
 	<cfscript>
@@ -148,7 +151,7 @@
 		//command = '#Variables.LibraryPath#ffmpeg.exe -i "#arguments.VideoFilePath#" -g 300 -y -s qvga -map_meta_data "#outputFilePath#:#arguments.VideoFilePath#" -b:v #bitrate# -b:a #audiobitrate# -r #framerate# -ar 44100 "#outputFilePath#"';
 		//command = '#Variables.LibraryPath#ffmpeg#arch#.exe -i "#arguments.VideoFilePath#" -g 300 -y -s qvga -b:v #bitrate# -b:a #audiobitrate# -r #framerate# -ar 44100 "#outputFilePath#"';
 
-		process = oRuntime.exec(#command#);
+		process = oRuntime.exec(command,javacast("null",""),createObject("java","java.io.File").init(Variables.FileMgr.getUploadPath()));
 		sResults.errorLogSuccess = processVideoStream(process.getErrorStream(),arguments.writeLogsToFile,true);
 		sResults.resultLogSuccess = processVideoStream(process.getInputStream(),arguments.writeLogsToFile);
 		sResults.exitCode = process.waitFor();
@@ -157,7 +160,6 @@
 	//	sResults.status = e;
 	//}
 	</cfscript>
-
 	<!--- Check for converted file. Size > 0 means a successful conversion. --->
 	<cfif FileExists(Arguments.outputFilePath)>
 		<cfif arguments.Extension EQ "flv">
@@ -167,10 +169,11 @@
 		<cfset ConvertedFileSize = sConvertedFileInfo.Size>
 	</cfif>
 	<cfset ConversionSuccessful = (ConvertedFileSize GT 0)>
-
 	<cfif NOT ConversionSuccessful>
 		<cfset ErrorMsg = variables.FileMgr.readFile("errors.log","video_converter/logs")>
-		<cfthrow type="VideoConverter" message="The file conversion was unsuccessful. #ErrorMsg#">
+		<cfset txtcmd = replace(serialize(command),"','"," ","all")>
+		<cfset txtcmd = rereplace(txtcmd,"','"," ","all")>
+		<cfthrow type="VideoConverter" message="The file conversion was unsuccessful. command: #txtcmd# RESULT: #listLast(ErrorMsg,chr(10))#">
 	</cfif>
 
 	<cfreturn Arguments.outputFilePath>
@@ -256,6 +259,7 @@
 <cffunction name="generateVideoThumb" access="public" returntype="string" output="no" hint="I generate a Video thumbnail JPEG.">
 	<cfargument name="VideoFilePath" type="string" required="yes" hint="The full path to the video from which a thumbnail image will be created.">
 	<cfargument name="ThumbFolder" type="string" required="yes" hint="The folder in which to place the resulting thumbnail image (Ideally with the same name as the video, but with a different file extension).">
+	<cfargument name="Seconds" type="numeric" default="3" hint="Number of seconds into the video to take the thumb.">
 
 	<!--- convert the file --->
 	<cfset var oRuntime = "">
@@ -273,8 +277,8 @@
 	<cfscript>
 	try {
 		oRuntime = CreateObject("java", "java.lang.Runtime").getRuntime();
-		command = '#ExePath# -i "#Arguments.VideoFilePath#" -r 1 -s qqvga -f image2 -ss 3 -vframes 1 "#Arguments.ThumbFilePath#"';
-		process = oRuntime.exec(#command#);
+		command = ["#ExePath#","-i","#Arguments.VideoFilePath#","-r","1","-s","qqvga","-f","image2","-ss","#Arguments.Seconds#","-vframes","1","#Arguments.ThumbFilePath#"];
+		process = oRuntime.exec(command);
 		sResults.errorLogSuccess = processVideoStream(process.getErrorStream(),false,true);
 		sResults.resultLogSuccess = processVideoStream(process.getInputStream());
 		sResults.exitCode = process.waitFor();
@@ -290,6 +294,11 @@
 		<cfif sImageFileInfo.Size GT 0>
 			<cfset result = Arguments.ThumbFilePath>
 		</cfif>
+	<cfelse>
+		<cfset ErrorMsg = variables.FileMgr.readFile("errors.log","video_converter/logs")>
+		<cfset txtcmd = replace(serialize(command),"','"," ","all")>
+		<cfset txtcmd = rereplace(txtcmd,"','"," ","all")>
+		<cfthrow type="VideoConverter" message="The thumbnail generation was unsuccessful. command: #txtcmd# RESULT: #listLast(ErrorMsg,chr(10))#">
 	</cfif>
 
 	<cfreturn result>
@@ -299,7 +308,6 @@
 
 	<cfset var platform = getPlatform()>
 	<cfset var ExePath = "">
-
 	<cfif platform.OS EQ "Windows">
 
 		<cfif platform.Arch EQ 64>
@@ -315,6 +323,9 @@
 		<cfelse>
 			<cfset ExePath = Variables.LibraryPath & "ffmpeglinux">
 		</cfif>
+
+	<cfelseif platform.OS EQ "OSX">
+		<cfset ExePath = Variables.LibraryPath & "ffmpegosx">
 
 	</cfif>
 
@@ -383,6 +394,11 @@ http://ffmpeg.gusari.org/static/
 		<cfelse>
 			<cfset platform['Arch'] = 32>
 		</cfif>
+
+	<cfelseif Server.os.name EQ 'Mac OS X'>
+		<cfset platform['OS'] = "OSX">
+		<cfset platform['Arch'] = 64>
+
 	</cfif>
 
 	<cfreturn platform>
@@ -528,7 +544,7 @@ http://ffmpeg.gusari.org/static/
 		</cfswitch>
 	</cfloop>
 
-	<cfset flashvars = "autoplay=#TrueFalseFormat(Arguments.AutoPlay)#&amp;controls=#TrueFalseFormat(Arguments.Controls)#&amp;loop=false&amp;src=#sVideos.mp4#">
+	<cfset flashvars = "autoplay=#TrueFalseFormat(Arguments.AutoPlay)#&amp;controls=#TrueFalseFormat(Arguments.Controls)#&amp;loop=false">
 
 	<cfset useVideoElement = ( StructKeyExists(sVideos,"mp4") OR StructKeyExists(sVideos,"webm") OR StructKeyExists(sVideos,"ogg") )>
 
@@ -827,12 +843,25 @@ http://ffmpeg.gusari.org/static/
 	<cfset var command = "">
 	<cfset var process = 0>
 	<cfset var sResults = StructNew()>
+	<cfset var platform = getPlatform()>
 
 	<cfscript>
 	try {
 		oRuntime = CreateObject("java", "java.lang.Runtime").getRuntime();
-		command = '#Variables.LibraryPath#flvtool2.exe -U #Arguments.FilePath#';
-		process = oRuntime.exec(#command#);
+		switch(platform.OS) {
+			case "Windows" :
+				command = ["#Variables.LibraryPath#flvmeta#platform.arch#.exe","-U","#Arguments.FilePath#"];
+				break;
+			case "UNIX" :
+				command = ["#Variables.LibraryPath#flvmeta#platform.arch#","-U","#Arguments.FilePath#"];
+				break;
+			case "OSX" :
+				command = ["#Variables.LibraryPath#flvmetaosx","-U","#Arguments.FilePath#"];
+				break;
+			default:
+				throw(type="VideoConverter",message="unknown OS: #platform.OS#");
+		}
+		process = oRuntime.exec(command,javacast("null",""),createObject("java","java.io.File").init(Variables.FileMgr.getUploadPath()));
 	}
 	catch(exception e) {
 		sResults.status = e;
