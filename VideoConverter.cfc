@@ -395,7 +395,7 @@ http://ffmpeg.gusari.org/static/
 			<cfthrow message="Unable to determine the platform arch type" type="VideoConverter">
 		</cfif>
 
-	<cfelseif Server.os.name EQ 'UNIX'>
+	<cfelseif Server.os.name EQ 'UNIX' OR Server.os.name EQ 'Linux'>
 		<cfset platform['OS'] = "UNIX">
 
 		<cfif StructKeyExists(Server.os,"arch") && (FindNoCase('64',Server.os.arch) OR FindNoCase('i686',Server.os.arch)) >
