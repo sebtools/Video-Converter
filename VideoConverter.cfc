@@ -325,6 +325,11 @@
 		</cfif>
 
 	<cfelseif platform.OS EQ "OSX">
+
+		<cfset ExePath = Variables.LibraryPath & "ffmpegosx">
+
+	<cfelseif platform.OS EQ "OSX">
+
 		<cfset ExePath = Variables.LibraryPath & "ffmpegosx">
 
 	</cfif>
@@ -402,6 +407,9 @@ http://ffmpeg.gusari.org/static/
 	<cfelseif Server.os.name EQ 'Mac OS X'>
 		<cfset platform['OS'] = "OSX">
 		<cfset platform['Arch'] = 64>
+	
+	<cfelse>
+		<cfthrow type="VideoConverter" message="Could not get platform for #Server.os.name# #Server.os.arch#" />
 
 	</cfif>
 
