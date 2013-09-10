@@ -260,6 +260,8 @@
 	<cfargument name="VideoFilePath" type="string" required="yes" hint="The full path to the video from which a thumbnail image will be created.">
 	<cfargument name="ThumbFolder" type="string" required="yes" hint="The folder in which to place the resulting thumbnail image (Ideally with the same name as the video, but with a different file extension).">
 	<cfargument name="Seconds" type="numeric" default="3" hint="Number of seconds into the video to take the thumb.">
+	<cfargument name="Dimensions" type="string" default="qqvga" hint="Dimensions for thumb, defaults to 120x160.">
+	<cfargument name="Type" type="string" default="jpg" hint="File type, defaults to jpg">
 
 	<!--- convert the file --->
 	<cfset var oRuntime = "">
@@ -268,7 +270,7 @@
 	<cfset var sResults = StructNew()>
 	<cfset var sImageFileInfo = StructNew()>
 	<cfset var result = "">
-	<cfset var ThumbFileName = getFileFromPath(ListDeleteAt(Arguments.VideoFilePath,ListLen(Arguments.VideoFilePath,"."),".") & ".jpg")>
+	<cfset var ThumbFileName = getFileFromPath(ListDeleteAt(Arguments.VideoFilePath,ListLen(Arguments.VideoFilePath,"."),".") & "." & Arguments.Type)>
 	<cfset var ExePath = getExecutablePath()>
 
 	<!--- Determine the image path --->
@@ -277,7 +279,7 @@
 	<cfscript>
 	try {
 		oRuntime = CreateObject("java", "java.lang.Runtime").getRuntime();
-		command = ["#ExePath#","-i","#Arguments.VideoFilePath#","-r","1","-s","qqvga","-f","image2","-ss","#Arguments.Seconds#","-vframes","1","#Arguments.ThumbFilePath#"];
+		command = ["#ExePath#","-i","#Arguments.VideoFilePath#","-r","1","-s","#Arguments.Dimensions#","-f","image2","-ss","#Arguments.Seconds#","-vframes","1","#Arguments.ThumbFilePath#"];
 		process = oRuntime.exec(command);
 		sResults.errorLogSuccess = processVideoStream(process.getErrorStream(),false,true);
 		sResults.resultLogSuccess = processVideoStream(process.getInputStream());
@@ -633,7 +635,7 @@ http://ffmpeg.gusari.org/static/
 	//if(StructKeyExists(Server.os,"arch") && FindNoCase('x86',Server.os.arch)){ arch = "x86";}
 
 	oRuntime = CreateObject("java", "java.lang.Runtime").getRuntime();
-	command = '#ExePath# -i "#Arguments.file#"';
+	command = [ExePath,"-i",Arguments.file];
 	process = oRuntime.exec(#command#);
 	stdError = process.getErrorStream();
 	reader = CreateObject("java", "java.io.InputStreamReader").init(stdError);
@@ -649,6 +651,16 @@ http://ffmpeg.gusari.org/static/
 		{ return VideoInfo; }
 	//VideoInfo.format = ReFindNoCase('Input ##0, [[:alnum:],]+, from',ffmpegOut,1,1);
 	//VideoInfo.format = mid(ffmpegOut,VideoInfo.format.pos[1]+10,VideoInfo.format.len[1]-16);
+
+	// get dementions
+	VideoInfo.dementions = rematch('([0-9]{2,}x[0-9]+)',ffmpegOut);
+	if(arrayLen(VideoInfo.dementions)) {
+		VideoInfo.width = listFirst(VideoInfo.dementions[1],"x");
+		VideoInfo.height = listLast(VideoInfo.dementions[1],"x");
+		VideoInfo.dementions=VideoInfo.dementions[1];
+	} else {
+		StructDelete(VideoInfo,"dementions");
+	}
 
 	// get playing time
 	VideoInfo.Duration = REFindNoCase('Duration: \d{2}:\d{2}:([\d\.]){0,2}',ffmpegOut,1,true);
