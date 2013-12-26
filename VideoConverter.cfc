@@ -769,7 +769,11 @@ http://ffmpeg.gusari.org/static/
 				<cfbreak>
 			</cfif>
 		</cfloop>
-		<cfset ArrayInsertAt(xTable.XmlChildren,FieldTagPosition,XmlElemNew(XmlObj,"field"))>
+		<cfif FieldTagPosition GT ArrayLen(xTable.XmlChildren)>
+			<cfset ArrayAppend(xTable.XmlChildren,XmlElemNew(XmlObj,"field"))>
+		<cfelse>
+			<cfset ArrayInsertAt(xTable.XmlChildren,FieldTagPosition,XmlElemNew(XmlObj,"field"))>
+		</cfif>
 		<cfset xTable.XmlChildren[FieldTagPosition].XmlAttributes["name"]	= "#Arguments.SourceVideoFile##UCase(ii)#">
 		<cfset xTable.XmlChildren[FieldTagPosition].XmlAttributes["Label"] = "#Arguments.SourceVideoFile# (.#ii#)">
 		<cfset xTable.XmlChildren[FieldTagPosition].XmlAttributes["type"] = "file">
