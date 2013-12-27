@@ -10,26 +10,22 @@
 <cffunction name="setUp" access="public" returntype="any" output="no">
 	<cfsetting requesttimeout="333" />
 	<cfscript>
-		workpath = expandPath("/tests/work/");
-		directoryExists(workpath) ? directoryDelete(workpath,true) : "";
-		directoryCreate(workpath);
+	Variables.TestPath = getDirectoryFromPath(getCurrentTemplatePath());
+	Variables.dirdelim = Right(Variables.TestPath,1);
+	
+	Variables.FileMgr = CreateObject("component","video-converter.FileMgr").init(Variables.TestPath,"/f/");
+	Variables.VideoConverter = CreateObject("component","video-converter.VideoConverter").init(Variables.FileMgr);	
 
-		Variables.TestPath = getDirectoryFromPath(getMetadata(this).path);
-		Variables.dirdelim = Right(Variables.TestPath,1);
-		
-		Variables.FileMgr = CreateObject("component","video-converter.FileMgr").init(workpath,"/f/");
-		Variables.VideoConverter = CreateObject("component","video-converter.VideoConverter").init(Variables.FileMgr);	
-
-		Variables.sTestFiles = {
-			flv = "barsandtone.flv",
-			mov = "barsandtone.mov",
-			mp4 = "barsandtone.mp4",
-			ogg = "barsandtone.ogv",
-			ogv = "barsandtone.ogv",
-			swf = "barsandtone.swf",
-			webm = "barsandtone.webm",
-			avi = "barsandtone.avi"
-		};
+	Variables.sTestFiles = {
+		flv = "barsandtone.flv",
+		mov = "barsandtone.mov",
+		mp4 = "barsandtone.mp4",
+		ogg = "barsandtone.ogv",
+		ogv = "barsandtone.ogv",
+		swf = "barsandtone.swf",
+		webm = "barsandtone.webm",
+		avi = "barsandtone.avi"
+	};
 	</cfscript>
 </cffunction>
 
@@ -95,7 +91,7 @@
 	
 	<cfset var result = "">
 	
-	<cfsavecontent variable="result">
+	<cfsavecontent variable="result"><cfoutput>
 	<tables prefix="test">
 		<table entity="Question" Specials="CreationDate,LastUpdatedDate,Sorter">
 			<field name="RandomField" type="text" />
@@ -107,7 +103,7 @@
 			<field name="VideoWidth" label="Video Width" type="integer" help="The width of the video (in pixels)." required="true" default="320" />
 			<field name="VideoHeight" label="Video Height" type="integer" help="The height of the video (in pixels)." required="true" default="240" />
 		</table>
-	</tables>
+	</cfoutput></tables>
 	</cfsavecontent>
 	
 	<cfreturn result>
@@ -140,7 +136,7 @@
 	
 	<cfset var result = "">
 	
-	<cfsavecontent variable="result">
+	<cfsavecontent variable="result"><cfoutput>
 	<?xml version="1.0" encoding="UTF-8"?>
 	<tables prefix="test">
 		<table Specials="CreationDate,LastUpdatedDate,Sorter" entity="Question">
@@ -154,7 +150,7 @@
 			<field default="240" help="The height of the video (in pixels)." label="Video Height" name="VideoHeight" required="true" type="integer"/>
 		</table>
 	</tables>
-	</cfsavecontent>
+	</cfoutput></cfsavecontent>
 	
 	<cfreturn result>
 </cffunction>
@@ -364,6 +360,7 @@
 >
 	
 	<cfset runThumbnailTest("webm")>
+	
 </cffunction>
 
 <!--- ** CONVERSION TESTS *** --->
@@ -745,31 +742,6 @@
 
        <!--- Return in list format --->
        <cfreturn ArrayToList(list1Array, Delim3) />
-</cffunction>
-
-<cffunction name="loadExternalVars" access="private" returntype="void" output="no">
-	<cfargument name="varlist" type="string" required="true">
-	<cfargument name="scope" type="string" default="Application">
-	<cfargument name="skipmissing" type="boolean" default="false">
-	
-	<cfset var varname = "">
-	<cfset var scopestruct = 0>
-	
-	<cfif Left(arguments.scope,1) EQ "." AND Len(arguments.scope) GTE 2>
-		<cfset variables[Right(arguments.scope,Len(arguments.scope)-1)] = Application[Right(arguments.scope,Len(arguments.scope)-1)]>
-		<cfset arguments.scope = "Application#arguments.scope#">
-	</cfif>
-		
-	<cfset scopestruct = StructGet(arguments.scope)>
-	
-	<cfloop index="varname" list="#arguments.varlist#">
-		<cfif StructKeyExists(scopestruct,varname)>
-			<cfset variables[varname] = scopestruct[varname]>
-		<cfelseif NOT arguments.skipmissing>
-			<cfthrow message="#scope#.#varname# is not defined.">
-		</cfif>
-	</cfloop>
-	
 </cffunction>
 
 </cfcomponent>
