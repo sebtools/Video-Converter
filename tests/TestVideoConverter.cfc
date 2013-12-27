@@ -7,7 +7,7 @@
 	<cfset Variables.FormatsOut = "flv,mp4,ogv,swf,webm">
 </cffunction>--->
 
-<cfinclude template="../loadVideoConverter.cfm">
+<cfinclude template="../loader.cfm">
 
 <cffunction name="beforeTests" access="public" returntype="any" output="no">
 	<cfsetting requesttimeout="333" />

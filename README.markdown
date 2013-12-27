@@ -20,6 +20,8 @@ FileMgr itself is the only required argument for VideoConverter. So, assuming th
 
 This would put files in the "/f/" folder of your site, but you could change those arguments to any location you would like.
 
+You can also use the loadVideoConverter UDF that is included in load.cfm. An example of this is included in example.cfm.
+
 Convert Video
 -------
 
