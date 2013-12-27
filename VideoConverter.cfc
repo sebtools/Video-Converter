@@ -173,7 +173,7 @@
 		<cfset ErrorMsg = variables.FileMgr.readFile("errors.log","video_converter/logs")>
 		<cfset txtcmd = replace(serialize(command),"','"," ","all")>
 		<cfset txtcmd = rereplace(txtcmd,"','"," ","all")>
-		<cfthrow type="VideoConverter" message="The file conversion was unsuccessful. command: #txtcmd# RESULT: #listLast(ErrorMsg,chr(10))#">
+		<cfset throwError("The file conversion was unsuccessful. command: #txtcmd# RESULT: #listLast(ErrorMsg,chr(10))#")>
 	</cfif>
 
 	<cfreturn Arguments.outputFilePath>
@@ -300,7 +300,7 @@
 		<cfset ErrorMsg = variables.FileMgr.readFile("errors.log","video_converter/logs")>
 		<cfset txtcmd = replace(serialize(command),"','"," ","all")>
 		<cfset txtcmd = rereplace(txtcmd,"','"," ","all")>
-		<cfthrow type="VideoConverter" message="The thumbnail generation was unsuccessful. command: #txtcmd# RESULT: #listLast(ErrorMsg,chr(10))#">
+		<cfset throwError("The thumbnail generation was unsuccessful. command: #txtcmd# RESULT: #listLast(ErrorMsg,chr(10))#")>
 	</cfif>
 
 	<cfreturn result>
@@ -338,7 +338,7 @@
 	</cfif>
 	
 	<cfif NOT Len(ExePath)>
-		<cfthrow type="VideoConverter" message="Could not choose executable for #platform.os# #platform.arch#">
+		<cfset throwError("Could not choose executable for #platform.os# #platform.arch#")>
 	</cfif>
 
 	<cfreturn ExePath>
@@ -395,7 +395,7 @@ http://ffmpeg.gusari.org/static/
 		</cfif>
 
 		<cfif platform.Arch EQ "unknown">
-			<cfthrow message="Unable to determine the platform arch type" type="VideoConverter">
+			<cfset throwError("Unable to determine the platform arch type")>
 		</cfif>
 
 	<cfelseif Server.os.name EQ 'UNIX' OR Server.os.name EQ 'Linux'>
@@ -412,7 +412,7 @@ http://ffmpeg.gusari.org/static/
 		<cfset platform['Arch'] = 64>
 	
 	<cfelse>
-		<cfthrow type="VideoConverter" message="Could not get platform for #Server.os.name# #Server.os.arch#">
+		<cfset throwError("Could not get platform for #Server.os.name# #Server.os.arch#")>
 
 	</cfif>
 
@@ -780,7 +780,7 @@ http://ffmpeg.gusari.org/static/
 			}>
 
 	<cfif NOT isXml(Arguments.xml)>
-		<cfthrow message="The xml argument of modifyXml must be a valid string" type="VideoConverter">
+		<cfset throwError("The xml argument of modifyXml must be a valid string")>
 	</cfif>
 
 	<cfset XmlObj = XmlParse(Arguments.xml)>
@@ -788,7 +788,7 @@ http://ffmpeg.gusari.org/static/
 	<cfset axSourceField = XmlSearch(XmlObj, "//field[@name='#Arguments.SourceVideoFile#']")>
 
 	<cfif NOT ArrayLen(axSourceField)>
-		<cfthrow message="The field '#Arguments.SourceVideoFile#' was not found in the XML. Add the field and try again." type="VideoConverter">
+		<cfset throwError("The field '#Arguments.SourceVideoFile#' was not found in the XML. Add the field and try again.")>
 	</cfif>
 
 	<cfset xTable = axSourceField[1].XmlParent>
@@ -911,7 +911,7 @@ http://ffmpeg.gusari.org/static/
 				command = ["#Variables.LibraryPath#flvmetaosx","-U","#Arguments.FilePath#"];
 				break;
 			default:
-				throw(type="VideoConverter",message="unknown OS: #platform.OS#");
+				throwError("unknown OS: #platform.OS#");
 		}
 		process = oRuntime.exec(command,javacast("null",""),createObject("java","java.io.File").init(Variables.FileMgr.getUploadPath()));
 	}
@@ -931,6 +931,13 @@ function TrueFalseFormat(value) {
 	}
 }
 </cfscript>
+
+<cffunction name="throwError" access="private" returntype="void" output="no">
+	<cfargument name="message" type="string" required="true">
+	
+	<cfthrow type="VideoConverter" message="#Arguments.Message#">
+	
+</cffunction>
 
 <cffunction name="getEpochTime" access="private" returntype="string" output="no" hint="I get an Epoch time string (the number of seconds since January 1, 1970, 00:00:00).">
 <cfscript>
