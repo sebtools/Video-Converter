@@ -134,15 +134,16 @@
 </cffunction>
 
 <cffunction name="getSolvedXml" access="private" returntype="any" output="no" hint="This is the XML as it should be returned for the example XML.">
+	<cfargument name="prefix" type="boolean" default="true">
 	
 	<cfset var result = "">
 	
 	<cfsavecontent variable="result"><cfoutput>
-	<?xml version="1.0" encoding="UTF-8"?>
+	<cfif Arguments.prefix><?xml version="1.0" encoding="UTF-8"?></cfif>
 	<tables prefix="test">
 		<table Specials="CreationDate,LastUpdatedDate,Sorter" entity="Question">
 			<field name="RandomField" type="text"/>
-			<field Accept="video/avi,video/msvideo,video/x-msvideo,video/x-flv,video/mp4,video/mpeg,application/ogg,video/ogg,application/x-shockwave-flash,video/webm,video/quicktime" Extensions="avi,flv,mp4,mpeg,mpg,ogg,ogv,swf,webm,mov" Label="Video" name="Video" type="file" video="true"/>
+			<field Accept="video/avi,video/msvideo,video/x-msvideo,video/x-flv,application/octet-stream,video/mp4,video/mpeg,application/ogg,video/ogg,application/x-shockwave-flash,video/webm,video/quicktime" Extensions="avi,flv,mp4,mpeg,mpg,ogg,ogv,swf,webm,mov" Label="Video" name="Video" type="file" video="true"/>
 			<field Accept="video/mp4,video/mpeg" Extensions="mp4,mpeg,mpg" Folder="Video,mp4" Label="Video (.mp4)" name="VideoMP4" original="Video" sebcolumn="false" sebfield="false" type="file"/>
 			<field Accept="application/ogg,video/ogg" Extensions="ogg,ogv" Folder="Video,ogg" Label="Video (.ogg)" name="VideoOGG" original="Video" sebcolumn="false" sebfield="false" type="file"/>
 			<field Accept="application/x-shockwave-flash" Extensions="swf" Folder="Video,swf" Label="Video (.swf)" name="VideoSWF" original="Video" sebcolumn="false" sebfield="false" type="file"/>
@@ -266,11 +267,12 @@
 <cffunction name="shouldSourceFieldsBeSecured" access="public" returntype="any" output="no"
 	hint="The source video should have the correct allowed extensions and mime-types."
 >
-	
+	<cfset var XmlSolved = getSolvedXml(false)>
+	<cfset var xSolved = XmlParse(XmlSolved)>
 	<cfset var xConverted = getParsedXml()>
 	<cfset var axField = XmlSearch(xConverted,"//field[@name='Video']")>
-	<cfset var AcceptedExtensions = "avi,flv,mp4,mpeg,mpg,ogg,ogv,swf,webm,mov">
-	<cfset var AcceptedMimeTypes = "video/avi,video/msvideo,video/x-msvideo,video/x-flv,video/mp4,video/mpeg,application/ogg,video/ogg,application/x-shockwave-flash,video/webm,video/quicktime">
+	<cfset var AcceptedExtensions = xSolved.tables.table.field[2].XmlAttributes.Extensions>
+	<cfset var AcceptedMimeTypes = xSolved.tables.table.field[2].XmlAttributes.Accept>
 	<cfset var Missing = "">
 	<cfset var Extra = "">
 	
