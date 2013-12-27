@@ -43,12 +43,26 @@
 	
 </cffunction>
 
-<!--- 
 <cffunction name="shouldFormatVideosCreateAllNeededFiles" access="public" returntype="any" output="no"
 	hint="The formatVideos method should create all of the files needed by any video files in the component."
 >
 	
-	<cfset fail("This test has not yet been implemented.")>
+	<cfset var oWidgets = loadWidgets(Variables.WorkingPath)>
+	<cfset var sArgs = StructFromArgs(WidgetID=0,Video="#Variables.TestPath#barsandtone.mp4")>
+	<cfset var sResult = Variables.VideoConverter.formatVideos(oWidgets,sArgs)>
+	<cfset var WidgetVideoPath = "#Variables.WorkingPath#test#dirdelim#widgets#dirdelim#video#dirdelim#">
+	
+	<cfif NOT FileExists("#WidgetVideoPath#mp4#dirdelim##sResult.VideoMP4#")>
+		<cfset fail("The MP4 file does not exist in the correct location.")>
+	</cfif>
+	
+	<cfif NOT FileExists("#WidgetVideoPath#ogg#dirdelim##sResult.VideoOGG#")>
+		<cfset fail("The OGG/OGV file does not exist in the correct location.")>
+	</cfif>
+	
+	<cfif NOT FileExists("#WidgetVideoPath#webm#dirdelim##sResult.VideoWEBM#")>
+		<cfset fail("The WEBM file does not exist in the correct location.")>
+	</cfif>
 	
 </cffunction>
 
@@ -56,10 +70,28 @@
 	hint="The formatVideos method should return a structure including all created videos."
 >
 	
-	<cfset fail("This test has not yet been implemented.")>
+	<cfset var oWidgets = loadWidgets(Variables.WorkingPath)>
+	<cfset var sArgs = StructFromArgs(WidgetID=0,Video="#Variables.TestPath#barsandtone.mp4")>
+	<cfset var sResult = Variables.VideoConverter.formatVideos(oWidgets,sArgs)>
+	<cfset var Keys = StructKeyList(sResult)>
+	
+	<cfif NOT ListFindNoCase(Keys,"Video")>
+		<cfset fail("Original video not returned in structure.")>
+	</cfif>
+	
+	<cfif NOT ListFindNoCase(Keys,"VideoMP4")>
+		<cfset fail("MP4 video not returned in structure.")>
+	</cfif>
+	
+	<cfif NOT ListFindNoCase(Keys,"VideoOGG")>
+		<cfset fail("OGG/OGV video not returned in structure.")>
+	</cfif>
+	
+	<cfif NOT ListFindNoCase(Keys,"VideoWEBM")>
+		<cfset fail("WEBM video not returned in structure.")>
+	</cfif>
 	
 </cffunction>
- --->
 
 <!--- ** GetVideoHTML TESTS *** --->
 
@@ -107,7 +139,7 @@
 	
 	<cfsavecontent variable="result"><cfoutput>
 	<tables prefix="test">
-		<table entity="Question" Specials="CreationDate,LastUpdatedDate,Sorter">
+		<table entity="Widget" Specials="CreationDate,LastUpdatedDate,Sorter">
 			<field name="RandomField" type="text" />
 			<field
 				name="Video"
@@ -154,7 +186,7 @@
 	<cfsavecontent variable="result"><cfoutput>
 	<cfif Arguments.prefix><?xml version="1.0" encoding="UTF-8"?></cfif>
 	<tables prefix="test">
-		<table Specials="CreationDate,LastUpdatedDate,Sorter" entity="Question">
+		<table Specials="CreationDate,LastUpdatedDate,Sorter" entity="Widget">
 			<field name="RandomField" type="text"/>
 			<field Accept="video/avi,video/msvideo,video/x-msvideo,video/x-flv,application/octet-stream,video/mp4,video/mpeg,application/ogg,video/ogg,application/x-shockwave-flash,video/webm,video/quicktime" Extensions="avi,flv,mp4,mpeg,mpg,ogg,ogv,swf,webm,mov" Label="Video" name="Video" type="file" video="true"/>
 			<field Accept="video/mp4,video/mpeg" Extensions="mp4,mpeg,mpg" Folder="Video,mp4" Label="Video (.mp4)" name="VideoMP4" original="Video" sebcolumn="false" sebfield="false" type="file"/>
@@ -384,7 +416,9 @@
 <cffunction name="runVideoConvertTest" access="private" returntype="any" output="no">
 	<cfargument name="from" type="string" required="yes">
 	<cfargument name="to" type="string" required="yes">
+	
 	<cfset var NewFile = Variables.VideoConverter.convertVideo("#Variables.TestPath##Variables.sTestFiles[Arguments.from]#","videos",Arguments.to)>
+	
 	<cfif Len(NewFile) AND FileExists(NewFile)>
 		<!---<cffile action="delete" file="#NewFile#">--->
 		<cfset assertEquals(ListLast(NewFile,"."),Arguments.to,"The file did not have the appropriate file format.")>
@@ -758,6 +792,28 @@
 
        <!--- Return in list format --->
        <cfreturn ArrayToList(list1Array, Delim3) />
+</cffunction>
+
+<cffunction name="StructFromArgs" access="public" returntype="struct" output="false" hint="">
+	
+	<cfset var sTemp = 0>
+	<cfset var sResult = StructNew()>
+	<cfset var key = "">
+	
+	<cfif ArrayLen(arguments) EQ 1 AND isStruct(arguments[1])>
+		<cfset sTemp = arguments[1]>
+	<cfelse>
+		<cfset sTemp = arguments>
+	</cfif>
+	
+	<!--- set all arguments into the return struct --->
+	<cfloop collection="#sTemp#" item="key">
+		<cfif StructKeyExists(sTemp, key)>
+			<cfset sResult[key] = sTemp[key]>
+		</cfif>
+	</cfloop>
+	
+	<cfreturn sResult>
 </cffunction>
 
 </cfcomponent>
