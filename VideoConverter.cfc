@@ -40,6 +40,8 @@
 	<cfif NOT FileExists(Variables.FileMgr.getFilePath("results.log",Arguments.LogsFolder))>
 		<cfset Variables.FileMgr.writeFile("results.log","",Arguments.LogsFolder)>
 	</cfif>
+	
+	<cfset This.FileMgr = Variables.FileMgr>
 
 	<cfreturn This>
 </cffunction>
