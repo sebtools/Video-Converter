@@ -44,7 +44,7 @@
 	<cfreturn This>
 </cffunction>
 
-<cffunction name="getConversionCommand" access="public" returntype="array" output="no" hint="I convert a Video to the requested format. I return the file name">
+<cffunction name="getConversionCommand" access="public" returntype="string" output="no" hint="I convert a Video to the requested format. I return the file name">
 	<cfargument name="VideoFilePath" type="string" required="yes" hint="The full path to the source video.">
 	<cfargument name="Folder" type="string" required="yes" hint="The folder in which to place the new video.">
 	<cfargument name="Extension" type="string" default="flv" hint="The extension for the new file.">
