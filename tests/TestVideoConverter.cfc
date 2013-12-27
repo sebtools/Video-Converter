@@ -7,14 +7,15 @@
 	<cfset Variables.FormatsOut = "flv,mp4,ogv,swf,webm">
 </cffunction>--->
 
+<cfinclude template="../loadVideoConverter.cfm">
+
 <cffunction name="setUp" access="public" returntype="any" output="no">
 	<cfsetting requesttimeout="333" />
 	<cfscript>
 	Variables.TestPath = getDirectoryFromPath(getCurrentTemplatePath());
 	Variables.dirdelim = Right(Variables.TestPath,1);
 	
-	Variables.FileMgr = CreateObject("component","video-converter.FileMgr").init(Variables.TestPath,"/f/");
-	Variables.VideoConverter = CreateObject("component","video-converter.VideoConverter").init(Variables.FileMgr);	
+	Variables.VideoConverter = loadVideoConverter(Variables.TestPath);
 
 	Variables.sTestFiles = {
 		flv = "barsandtone.flv",
