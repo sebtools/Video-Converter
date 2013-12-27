@@ -173,9 +173,7 @@
 	<cfset ConversionSuccessful = (ConvertedFileSize GT 0)>
 	<cfif NOT ConversionSuccessful>
 		<cfset ErrorMsg = variables.FileMgr.readFile("errors.log","video_converter/logs")>
-		<cfset txtcmd = replace(serialize(command),"','"," ","all")>
-		<cfset txtcmd = rereplace(txtcmd,"','"," ","all")>
-		<cfset throwError("The file conversion was unsuccessful. command: #txtcmd# RESULT: #listLast(ErrorMsg,chr(10))#")>
+		<cfset throwError("The file conversion was unsuccessful. command: #command# RESULT: #listLast(ErrorMsg,chr(10))#")>
 	</cfif>
 
 	<cfreturn Arguments.outputFilePath>
@@ -226,9 +224,7 @@
 					<cfif ext EQ "ogg">
 						<cfset ext = "ogv">
 					</cfif>
-					<cfif ext EQ ListLast(Arguments.Args[key],".")>
-						<cfset Arguments.Args[format] = Arguments.Args[key]>
-					<cfelseif ListFindNoCase(extensions,ext)>
+					<cfif ListFindNoCase(extensions,ext)>
 						<cftry>
 							<cfset Arguments.Args[format] = getFileFromPath(
 								convertVideo(
@@ -246,7 +242,7 @@
 										<cfset Arguments.Args[format2]= "">
 									</cfif>
 								</cfloop>
-								<cfset Arguments.Component.throwError("Unable to convert this video to #ListFirst(sFields[format].Extensions)#. This is likely because this codec was not supported. (Video encoding is complicated and not all codecs can be supported, sorry)")>
+								<cfset Arguments.Component.throwError("Unable to convert this video to #ext#. This is likely because this codec was not supported. (Video encoding is complicated and not all codecs can be supported, sorry)")>
 							</cfif>
 						</cfcatch>
 						</cftry>
