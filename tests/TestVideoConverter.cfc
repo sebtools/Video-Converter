@@ -9,13 +9,14 @@
 
 <cfinclude template="../loadVideoConverter.cfm">
 
-<cffunction name="setUp" access="public" returntype="any" output="no">
+<cffunction name="beforeTests" access="public" returntype="any" output="no">
 	<cfsetting requesttimeout="333" />
 	<cfscript>
 	Variables.TestPath = getDirectoryFromPath(getCurrentTemplatePath());
 	Variables.dirdelim = Right(Variables.TestPath,1);
+	Variables.WorkingPath = "#Variables.TestPath#f#Variables.dirdelim#";
 	
-	Variables.VideoConverter = loadVideoConverter(Variables.TestPath);
+	Variables.VideoConverter = loadVideoConverter(Variables.WorkingPath);
 
 	Variables.sTestFiles = {
 		flv = "barsandtone.flv",
@@ -28,6 +29,18 @@
 		avi = "barsandtone.avi"
 	};
 	</cfscript>
+</cffunction>
+
+<cffunction name="afterTests" access="public" returntype="any" output="no">
+	
+	<cfset var qTestFiles = Variables.VideoConverter.FileMgr.getDirectoryList(directory=Variables.WorkingPath,recurse=true)>
+	
+	<cfoutput query="qTestFiles">
+		<cfif Type EQ "File">
+			<cffile action="delete" file="#Directory##Variables.dirdelim##Name#">
+		</cfif>
+	</cfoutput>
+	
 </cffunction>
 
 <!--- 
