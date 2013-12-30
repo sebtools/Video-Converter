@@ -7,14 +7,18 @@
 	<cfset Variables.FormatsOut = "flv,mp4,ogv,swf,webm">
 </cffunction>--->
 
-<cffunction name="setUp" access="public" returntype="any" output="no">
+<cfinclude template="../loader.cfm">
+
+<cffunction name="beforeTests" access="public" returntype="any" output="no">
+	<cfsetting requesttimeout="333" />
+	<cfscript>
+	Variables.TestPath = getDirectoryFromPath(getCurrentTemplatePath());
+	Variables.dirdelim = Right(Variables.TestPath,1);
+	Variables.WorkingPath = "#Variables.TestPath#f#Variables.dirdelim#";
 	
-	<cfset loadExternalVars("VideoConverter")>
-	
-	<cfset Variables.TestPath = getDirectoryFromPath(getCurrentTemplatePath())>
-	<cfset Variables.dirdelim = Right(Variables.TestPath,1)>
-	
-	<cfset Variables.sTestFiles = {
+	Variables.VideoConverter = loadVideoConverter(Variables.WorkingPath);
+
+	Variables.sTestFiles = {
 		flv = "barsandtone.flv",
 		mov = "barsandtone.mov",
 		mp4 = "barsandtone.mp4",
@@ -23,7 +27,19 @@
 		swf = "barsandtone.swf",
 		webm = "barsandtone.webm",
 		avi = "barsandtone.avi"
-	}>
+	};
+	</cfscript>
+</cffunction>
+
+<cffunction name="afterTests" access="public" returntype="any" output="no">
+	
+	<cfset var qTestFiles = Variables.VideoConverter.FileMgr.getDirectoryList(directory=Variables.WorkingPath,recurse=true)>
+	
+	<cfoutput query="qTestFiles">
+		<cfif Type EQ "File">
+			<cffile action="delete" file="#Directory##Variables.dirdelim##Name#">
+		</cfif>
+	</cfoutput>
 	
 </cffunction>
 
@@ -31,7 +47,22 @@
 	hint="The formatVideos method should create all of the files needed by any video files in the component."
 >
 	
-	<cfset fail("This test has not yet been implemented.")>
+	<cfset var oWidgets = loadWidgets(Variables.WorkingPath)>
+	<cfset var sArgs = StructFromArgs(WidgetID=0,Video="#Variables.TestPath#barsandtone.mp4")>
+	<cfset var sResult = Variables.VideoConverter.formatVideos(oWidgets,sArgs)>
+	<cfset var WidgetVideoPath = "#Variables.WorkingPath#test#dirdelim#widgets#dirdelim#video#dirdelim#">
+	
+	<cfif NOT FileExists("#WidgetVideoPath#mp4#dirdelim##sResult.VideoMP4#")>
+		<cfset fail("The MP4 file does not exist in the correct location.")>
+	</cfif>
+	
+	<cfif NOT FileExists("#WidgetVideoPath#ogg#dirdelim##sResult.VideoOGG#")>
+		<cfset fail("The OGG/OGV file does not exist in the correct location.")>
+	</cfif>
+	
+	<cfif NOT FileExists("#WidgetVideoPath#webm#dirdelim##sResult.VideoWEBM#")>
+		<cfset fail("The WEBM file does not exist in the correct location.")>
+	</cfif>
 	
 </cffunction>
 
@@ -39,7 +70,26 @@
 	hint="The formatVideos method should return a structure including all created videos."
 >
 	
-	<cfset fail("This test has not yet been implemented.")>
+	<cfset var oWidgets = loadWidgets(Variables.WorkingPath)>
+	<cfset var sArgs = StructFromArgs(WidgetID=0,Video="#Variables.TestPath#barsandtone.mp4")>
+	<cfset var sResult = Variables.VideoConverter.formatVideos(oWidgets,sArgs)>
+	<cfset var Keys = StructKeyList(sResult)>
+	
+	<cfif NOT ListFindNoCase(Keys,"Video")>
+		<cfset fail("Original video not returned in structure.")>
+	</cfif>
+	
+	<cfif NOT ListFindNoCase(Keys,"VideoMP4")>
+		<cfset fail("MP4 video not returned in structure.")>
+	</cfif>
+	
+	<cfif NOT ListFindNoCase(Keys,"VideoOGG")>
+		<cfset fail("OGG/OGV video not returned in structure.")>
+	</cfif>
+	
+	<cfif NOT ListFindNoCase(Keys,"VideoWEBM")>
+		<cfset fail("WEBM video not returned in structure.")>
+	</cfif>
 	
 </cffunction>
 
@@ -87,9 +137,9 @@
 	
 	<cfset var result = "">
 	
-	<cfsavecontent variable="result">
+	<cfsavecontent variable="result"><cfoutput>
 	<tables prefix="test">
-		<table entity="Question" Specials="CreationDate,LastUpdatedDate,Sorter">
+		<table entity="Widget" Specials="CreationDate,LastUpdatedDate,Sorter">
 			<field name="RandomField" type="text" />
 			<field
 				name="Video"
@@ -99,7 +149,7 @@
 			<field name="VideoWidth" label="Video Width" type="integer" help="The width of the video (in pixels)." required="true" default="320" />
 			<field name="VideoHeight" label="Video Height" type="integer" help="The height of the video (in pixels)." required="true" default="240" />
 		</table>
-	</tables>
+	</cfoutput></tables>
 	</cfsavecontent>
 	
 	<cfreturn result>
@@ -129,57 +179,25 @@
 </cffunction>
 
 <cffunction name="getSolvedXml" access="private" returntype="any" output="no" hint="This is the XML as it should be returned for the example XML.">
+	<cfargument name="prefix" type="boolean" default="true">
 	
 	<cfset var result = "">
 	
-	<cfsavecontent variable="result">
+	<cfsavecontent variable="result"><cfoutput>
+	<cfif Arguments.prefix><?xml version="1.0" encoding="UTF-8"?></cfif>
 	<tables prefix="test">
-		<table entity="Question" Specials="CreationDate,LastUpdatedDate,Sorter">
-			<field name="RandomField" type="text" />
-			<field
-				name="Video"
-				Label="Video"
-				type="file"
-				Accept="video/avi,video/msvideo,video/x-msvideo,video/x-flv,video/mp4,video/mpeg,application/ogg,video/ogg,application/x-shockwave-flash,video/webm"
-				Extensions="avi,flv,mp4,mpeg,mpg,ogg,ogv,swf,webm"
-			/>
-			<field
-				name="VideoMP4"
-				Label="Video (.mp4)"
-				type="file"
-				Accept="video/mp4,video/mpeg"
-				Extensions="mp4,mpeg,mpg"
-				sebfield="false"
-				sebcolumn="false"
-			/><field
-				name="VideoOGG"
-				Label="Video (.ogg)"
-				type="file"
-				Accept="application/ogg,video/ogg"
-				Extensions="ogg,ogv"
-				sebfield="false"
-				sebcolumn="false"
-			/><field
-				name="VideoSWF"
-				Label="Video (.swf)"
-				type="file"
-				Accept="application/x-shockwave-flash"
-				Extensions="swf"
-				sebfield="false"
-				sebcolumn="false"
-			/><field
-				name="VideoWEBM"
-				Label="Video (.webm)"
-				type="file"
-				Accept="video/webm"
-				Extensions="webm"
-				sebfield="false"
-				sebcolumn="false"
-			/><field name="VideoWidth" label="Video Width" type="integer" help="The width of the video (in pixels)." required="true" default="320" />
-			<field name="VideoHeight" label="Video Height" type="integer" help="The height of the video (in pixels)." required="true" default="240" />
+		<table Specials="CreationDate,LastUpdatedDate,Sorter" entity="Widget">
+			<field name="RandomField" type="text"/>
+			<field Accept="video/avi,video/msvideo,video/x-msvideo,video/x-flv,application/octet-stream,video/mp4,video/mpeg,application/ogg,video/ogg,application/x-shockwave-flash,video/webm,video/quicktime" Extensions="avi,flv,mp4,mpeg,mpg,ogg,ogv,swf,webm,mov" Label="Video" name="Video" type="file" video="true"/>
+			<field Accept="video/mp4,video/mpeg" Extensions="mp4,mpeg,mpg" Folder="Video,mp4" Label="Video (.mp4)" name="VideoMP4" original="Video" sebcolumn="false" sebfield="false" type="file"/>
+			<field Accept="application/ogg,video/ogg" Extensions="ogg,ogv" Folder="Video,ogg" Label="Video (.ogg)" name="VideoOGG" original="Video" sebcolumn="false" sebfield="false" type="file"/>
+			<field Accept="application/x-shockwave-flash" Extensions="swf" Folder="Video,swf" Label="Video (.swf)" name="VideoSWF" original="Video" sebcolumn="false" sebfield="false" type="file"/>
+			<field Accept="video/webm" Extensions="webm" Folder="Video,webm" Label="Video (.webm)" name="VideoWEBM" original="Video" sebcolumn="false" sebfield="false" type="file"/>
+			<field default="320" help="The width of the video (in pixels)." label="Video Width" name="VideoWidth" required="true" type="integer"/>
+			<field default="240" help="The height of the video (in pixels)." label="Video Height" name="VideoHeight" required="true" type="integer"/>
 		</table>
 	</tables>
-	</cfsavecontent>
+	</cfoutput></cfsavecontent>
 	
 	<cfreturn result>
 </cffunction>
@@ -205,9 +223,8 @@
 	hint="The modifyXml method should return the correct XML (this is a shortcut for several tests)."
 >
 	
-	<cfset var ConvertedXml = getConvertedXml()>
-	<cfset var SolvedXml = getSolvedXml()>
-	
+	<cfset var ConvertedXml = trim(rereplace(getConvertedXml(),">[\n|\s|\r]+<","><","all"))>
+	<cfset var SolvedXml = trim(rereplace(getSolvedXml(),">[\n|\s|\r]+<","><","all"))>
 	<cfset shouldModifyXmlReturnValidXml()>
 	
 	<cfset assertEquals(ToString(XmlParse(SolvedXml)),ToString(XmlParse(ConvertedXml)),"modifyXml did not return the correct XML.")>
@@ -233,7 +250,7 @@
 			<cfset VideoType = ReplaceNoCase(axFields[ii].XmlAttributes.name,"Video","","ONE")>
 			<cfswitch expression="#VideoType#">
 			<cfcase value="MP4">
-				<cfset MimeTypes = "video/mp4,video/mpeg,video/mpeg">
+				<cfset MimeTypes = "video/mp4,video/mpeg">
 				<cfset Extensions = "mp4,mpeg,mpg">
 			</cfcase>
 			<cfcase value="OGG">
@@ -295,11 +312,12 @@
 <cffunction name="shouldSourceFieldsBeSecured" access="public" returntype="any" output="no"
 	hint="The source video should have the correct allowed extensions and mime-types."
 >
-	
+	<cfset var XmlSolved = getSolvedXml(false)>
+	<cfset var xSolved = XmlParse(XmlSolved)>
 	<cfset var xConverted = getParsedXml()>
 	<cfset var axField = XmlSearch(xConverted,"//field[@name='Video']")>
-	<cfset var AcceptedExtensions = "avi,flv,mp4,mpeg,mpg,ogg,ogv,swf,webm">
-	<cfset var AcceptedMimeTypes = "video/avi,video/msvideo,video/x-msvideo,video/x-flv,video/mp4,video/mpeg,application/ogg,video/ogg,application/x-shockwave-flash,video/webm">
+	<cfset var AcceptedExtensions = xSolved.tables.table.field[2].XmlAttributes.Extensions>
+	<cfset var AcceptedMimeTypes = xSolved.tables.table.field[2].XmlAttributes.Accept>
 	<cfset var Missing = "">
 	<cfset var Extra = "">
 	
@@ -331,13 +349,13 @@
 
 <!--- ** THUMBNAIL TESTS *** --->
 
-<cffunction name="runThumbnailTest" access="public" returntype="any" output="no">
+<cffunction name="runThumbnailTest" access="private" returntype="any" output="no">
 	<cfargument name="type" type="string" required="yes">
+	<cfargument name="Seconds" type="numeric" default="3">
 	
-	<cfset var NewFile = Variables.VideoConverter.generateVideoThumb("#Variables.TestPath##Variables.sTestFiles[Arguments.type]#","video_converter,tests")>
+	<cfset var NewFile = Variables.VideoConverter.generateVideoThumb("#Variables.TestPath##Variables.sTestFiles[Arguments.type]#","videos",Arguments.Seconds)>
 	
 	<cfif Len(NewFile) AND FileExists(NewFile)>
-		<cffile action="delete" file="#NewFile#">
 		<cfset assertEquals(ListLast(NewFile,"."),"jpg","The file did not have the appropriate file format.")>
 	<cfelse>
 		<cfset fail("The file was not created.")>
@@ -373,7 +391,7 @@
 	hint="Thumbnails should be created from OGG videos."
 >
 	
-	<cfset runThumbnailTest("ogv")>
+	<cfset runThumbnailTest("ogv",0)>
 	
 </cffunction>
 
@@ -395,11 +413,11 @@
 
 <!--- ** CONVERSION TESTS *** --->
 
-<cffunction name="runVideoConvertTest" access="public" returntype="any" output="no">
+<cffunction name="runVideoConvertTest" access="private" returntype="any" output="no">
 	<cfargument name="from" type="string" required="yes">
 	<cfargument name="to" type="string" required="yes">
 	
-	<cfset var NewFile = Variables.VideoConverter.convertVideo("#Variables.TestPath##Variables.sTestFiles[Arguments.from]#","video_converter,tests",Arguments.to)>
+	<cfset var NewFile = Variables.VideoConverter.convertVideo("#Variables.TestPath##Variables.sTestFiles[Arguments.from]#","videos",Arguments.to)>
 	
 	<cfif Len(NewFile) AND FileExists(NewFile)>
 		<!---<cffile action="delete" file="#NewFile#">--->
@@ -759,7 +777,7 @@
  @author Rob Brooks-Bilson (rbils@amkor.com) 
  @version 2, June 25, 2009 
 --->
-<cffunction name="listCompare" output="false" returnType="string">
+<cffunction name="listCompare" access="private" output="false" returnType="string">
        <cfargument name="list1" type="string" required="true" />
        <cfargument name="list2" type="string" required="true" />
        <cfargument name="delim1" type="string" required="false" default="," />
@@ -776,29 +794,26 @@
        <cfreturn ArrayToList(list1Array, Delim3) />
 </cffunction>
 
-<cffunction name="loadExternalVars" access="private" returntype="void" output="no">
-	<cfargument name="varlist" type="string" required="true">
-	<cfargument name="scope" type="string" default="Application">
-	<cfargument name="skipmissing" type="boolean" default="false">
+<cffunction name="StructFromArgs" access="public" returntype="struct" output="false" hint="">
 	
-	<cfset var varname = "">
-	<cfset var scopestruct = 0>
+	<cfset var sTemp = 0>
+	<cfset var sResult = StructNew()>
+	<cfset var key = "">
 	
-	<cfif Left(arguments.scope,1) EQ "." AND Len(arguments.scope) GTE 2>
-		<cfset variables[Right(arguments.scope,Len(arguments.scope)-1)] = Application[Right(arguments.scope,Len(arguments.scope)-1)]>
-		<cfset arguments.scope = "Application#arguments.scope#">
+	<cfif ArrayLen(arguments) EQ 1 AND isStruct(arguments[1])>
+		<cfset sTemp = arguments[1]>
+	<cfelse>
+		<cfset sTemp = arguments>
 	</cfif>
-		
-	<cfset scopestruct = StructGet(arguments.scope)>
 	
-	<cfloop index="varname" list="#arguments.varlist#">
-		<cfif StructKeyExists(scopestruct,varname)>
-			<cfset variables[varname] = scopestruct[varname]>
-		<cfelseif NOT arguments.skipmissing>
-			<cfthrow message="#scope#.#varname# is not defined.">
+	<!--- set all arguments into the return struct --->
+	<cfloop collection="#sTemp#" item="key">
+		<cfif StructKeyExists(sTemp, key)>
+			<cfset sResult[key] = sTemp[key]>
 		</cfif>
 	</cfloop>
 	
+	<cfreturn sResult>
 </cffunction>
 
 </cfcomponent>

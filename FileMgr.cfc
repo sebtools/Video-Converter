@@ -1,5 +1,5 @@
-<!--- 1.5.5 (Build 16) --->
-<!--- Last Updated: 2011-11-23 --->
+<!--- 1.6 (Build 17) --->
+<!--- Last Updated: 2011-12-14 --->
 <!--- Information: sebtools.com --->
 <cfcomponent displayname="File Manager">
 <!--- %%Handle folders w/o write permission --->
@@ -14,8 +14,10 @@
 	
 	<cfset makedir(variables.UploadPath)>
 	
-	<cfset This["DirectoryList"] = getDirectoryList>
-	<cfset variables["DirectoryList"] = getDirectoryList>
+	<cfset This["getDirectoryList"] = getMyDirectoryList>
+	<cfset variables["getDirectoryList"] = getMyDirectoryList>
+	<cfset This["DirectoryList"] = getMyDirectoryList>
+	<cfset variables["DirectoryList"] = getMyDirectoryList>
 	
 	<cfset variables.DefaultExtensions = "ai,asx,avi,bmp,csv,dat,doc,docx,eps,fla,flv,gif,html,ico,jpeg,jpg,m4a,mov,mp3,mp4,mpa,mpg,mpp,pdf,png,pps,ppsx,ppt,pptx,ps,psd,qt,ra,ram,rar,rm,rtf,svg,swf,tif,txt,vcf,vsd,wav,wks,wma,wps,xls,xlsx,xml">
 	
@@ -158,7 +160,7 @@
  @author Raymond Camden (ray@camdenfamily.com) 
  @version 2, April 8, 2004 
 --->
-<cffunction name="getDirectoryList" output="false" returnType="query">
+<cffunction name="getMyDirectoryList" output="false" returnType="query">
     <cfargument name="directory" type="string" required="true">
     <cfargument name="filter" type="string" required="false" default="">
     <cfargument name="sort" type="string" required="false" default="">
@@ -169,11 +171,12 @@
 	<!--- more vars --->
 	<cfargument name="exclude" type="string" default="">
 	
-	<cfset var delim = getDirDelim()>
+	<cfset var delim = variables.dirdelim>
 	<cfset var ScriptName = 0>
 	<cfset var isExcluded = false>
 	<cfset var exdir = false>
 	<cfset var qDirs = 0>
+	<cfset var qFiles = 0>
 	<cfset var cols = "attributes,datelastmodified,mode,name,size,type,directory">
 	
 	<cfif Right(arguments.directory,1) NEQ delim>
@@ -183,7 +186,9 @@
     <cfif NOT StructKeyExists(arguments,"dirInfo")>
         <cfset arguments.dirInfo = QueryNew(cols)>
     </cfif>
-	<cfdirectory name="arguments.thisDir" directory="#arguments.directory#" sort="#sort#" filter="#arguments.filter#">
+    
+	<cfdirectory name="qFiles" directory="#arguments.directory#" sort="#sort#" filter="#arguments.filter#">
+	
 	<cfif arguments.recurse>
 		<cfdirectory name="qDirs" directory="#arguments.directory#" sort="#sort#">
 		<cfloop query="qDirs">
@@ -205,12 +210,12 @@
 					</cfloop>
 				</cfif>
 				<cfif NOT isExcluded>
-					<cfset getDirectoryList(directory=directory & name,filter=filter,sort=sort,recurse=true,dirInfo=arguments.dirInfo,exclude=exclude)>
+					<cfset getMyDirectoryList(directory=directory & name,filter=filter,sort=sort,recurse=true,dirInfo=arguments.dirInfo,exclude=exclude)>
 				</cfif>
 			</cfif>
 		</cfloop>
 	</cfif>
-	<cfloop query="arguments.thisDir">
+	<cfoutput query="qFiles">
 		<cfset QueryAddRow(arguments.dirInfo)>
 		<cfset QuerySetCell(arguments.dirInfo,"attributes",attributes)>
 		<cfset QuerySetCell(arguments.dirInfo,"datelastmodified",datelastmodified)>
@@ -218,8 +223,8 @@
 		<cfset QuerySetCell(arguments.dirInfo,"name",name)>
 		<cfset QuerySetCell(arguments.dirInfo,"size",size)>
 		<cfset QuerySetCell(arguments.dirInfo,"type",type)>
-		<cfset QuerySetCell(arguments.dirInfo,"directory",directory)>
-	</cfloop>
+		<cfset QuerySetCell(arguments.dirInfo,"directory",arguments.directory)>
+	</cfoutput>
 	
     <cfreturn arguments.dirInfo>
 </cffunction>
@@ -264,8 +269,11 @@
 		<cfif Right(result,1) EQ variables.dirdelim>
 			<cfset result = Left(result,Len(result)-1)>
 		</cfif>
-		
-		<cfset result = ListAppend(result,arguments.Folder,variables.dirdelim)>
+		<cfif DirectoryExists(arguments.Folder)>
+			<cfset result = arguments.Folder>
+		<cfelse>
+			<cfset result = ListAppend(result,arguments.Folder,variables.dirdelim)>
+		</cfif>
 	</cfif>
 	
 	<cfif Right(result,1) NEQ variables.dirdelim>
@@ -298,7 +306,15 @@
 	<cfargument name="FileName" type="string" required="yes">
 	<cfargument name="Folder" type="string" default="">
 	
-	<cfreturn getDirectory(arguments.Folder) & arguments.FileName>
+	<cfset var result = "">
+	
+	<cfif ListLen(Arguments.FileName,variables.dirdelim) GT 1 AND FileExists(Arguments.FileName)>
+		<cfset result = Arguments.FileName>
+	<cfelse>
+		<cfset result = getDirectory(arguments.Folder) & arguments.FileName>
+	</cfif>
+	
+	<cfreturn result>
 </cffunction>
 
 <cffunction name="getFileURL" access="public" returntype="string" output="no">
@@ -424,10 +440,14 @@
 	</cfif>
 	
 	<!--- Upload to temp directory. --->
-	<cfif StructKeyExists(arguments,"accept")>
-		<cffile action="UPLOAD" filefield="#Arguments.FieldName#" destination="#Arguments.TempDirectory#" nameconflict="MakeUnique" result="CFFILE" accept="#arguments.accept#">
+	<cfif StructKeyExists(Form,Arguments.FieldName)>
+		<cfif StructKeyExists(arguments,"accept")>
+			<cffile action="UPLOAD" filefield="#Arguments.FieldName#" destination="#Arguments.TempDirectory#" nameconflict="MakeUnique" result="CFFILE" accept="#arguments.accept#">
+		<cfelse>
+			<cffile action="UPLOAD" filefield="#Arguments.FieldName#" destination="#Arguments.TempDirectory#" nameconflict="MakeUnique" result="CFFILE">
+		</cfif>
 	<cfelse>
-		<cffile action="UPLOAD" filefield="#Arguments.FieldName#" destination="#Arguments.TempDirectory#" nameconflict="MakeUnique" result="CFFILE">
+		<cffile destination="#Arguments.TempDirectory#" source="#Arguments.FieldName#" action="copy">
 	</cfif>
 	
 	<cfset tempPath = ListAppend(CFFILE.ServerDirectory, CFFILE.ServerFile, dirdelim)>
