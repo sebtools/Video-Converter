@@ -26,7 +26,8 @@
 		ogv = "barsandtone.ogv",
 		swf = "barsandtone.swf",
 		webm = "barsandtone.webm",
-		avi = "barsandtone.avi"
+		avi = "barsandtone.avi",
+		wmv = "leaves.wmv"
 	};
 	</cfscript>
 </cffunction>
@@ -761,6 +762,54 @@
 >
 	
 	<cfset runVideoConvertTest("webm","swf")>
+	
+</cffunction>
+
+<cffunction name="shouldConvertVideoConvertWMV2AVI" access="public" returntype="any" output="no"
+	hint="Video conversion should work from WMV to AVI."
+>
+	
+	<cfset runVideoConvertTest("wmv","avi")>
+	
+</cffunction>
+
+<cffunction name="shouldConvertVideoConvertWMV2FLV" access="public" returntype="any" output="no"
+	hint="Video conversion should work from WMV to FLV."
+>
+	
+	<cfset runVideoConvertTest("wmv","flv")>
+	
+</cffunction>
+
+<cffunction name="shouldConvertVideoConvertWMV2MOV" access="public" returntype="any" output="no"
+	hint="Video conversion should work from WMV to MOV."
+>
+	
+	<cfset runVideoConvertTest("wmv","mov")>
+	
+</cffunction>
+
+<cffunction name="shouldConvertVideoConvertWMV2MP4" access="public" returntype="any" output="no"
+	hint="Video conversion should work from WMV to MP4."
+>
+	
+	<cfset runVideoConvertTest("wmv","mp4")>
+	
+</cffunction>
+
+<cffunction name="shouldConvertVideoConvertWMV2OGG" access="public" returntype="any" output="no"
+	hint="Video conversion should work from WMV to OGG."
+>
+	
+	<cfset runVideoConvertTest("wmv","ogv")>
+	
+</cffunction>
+
+<cffunction name="shouldConvertVideoConvertWMV2SWF" access="public" returntype="any" output="no"
+	hint="Video conversion should work from WMV to SWF."
+>
+	
+	<cfset runVideoConvertTest("wmv","swf")>
 	
 </cffunction>
 

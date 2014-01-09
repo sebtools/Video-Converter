@@ -776,6 +776,11 @@ http://ffmpeg.gusari.org/static/
 				extension="webm",
 				type="video/webm"
 			}>
+	<cfset MimeTypes[7] =
+			{
+				extension="wmv",
+				type="video/x-ms-wmv"
+			}>
 
 	<cfif NOT isXml(Arguments.xml)>
 		<cfset throwError("The xml argument of modifyXml must be a valid string")>
