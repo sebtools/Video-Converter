@@ -67,7 +67,7 @@
 
 	<cfif NOT Len(Arguments.outputFilePath)>
 		<cfset Variables.FileMgr.makeFolder(Arguments.Folder)>
-		<cfset Arguments.outputFilePath = Variables.FileMgr.getDirectory(arguments.Folder) & ListFirst(ListLast(getFileFromPath(arguments.VideoFilePath),"/"),".") & "." & arguments.Extension>
+		<cfset Arguments.outputFilePath = Variables.FileMgr.getDirectory(arguments.Folder) & getFilePrefix(arguments.VideoFilePath) & "." & arguments.Extension>
 		<cfset Arguments.outputFilePath = Variables.FileMgr.createUniqueFileName(outputFilePath)>
 	</cfif>
 
@@ -89,25 +89,25 @@
 	--->
 	<cfswitch expression="#Arguments.extension#">
 	<cfcase value="mp4">
-		<cfset command = '#ExePath# -i #arguments.VideoFilePath# -y -f mp4 -r 29.97 -vcodec libx264 -flags +loop -cmp +chroma -deblock 0:0 -b:v 1250k -maxrate 1500k -bufsize 4M -bt 256k -refs 1 -bf 3 -coder 1 -me_method umh -me_range 16 -subq 7 -partitions +parti4x4+parti8x8+partp8x8+partb8x8 -g 250 -keyint_min 25 -level 30 -qmin 10 -qmax 51 -qcomp 0.6 -trellis 2 -sc_threshold 40 -i_qfactor 0.71 -b_strategy 2 -qdiff 4 -direct-pred 3 -wpredp 2 -rc_lookahead 50 -acodec libvo_aacenc -b:a 112k -ar 48000 -ac 2 "#outputFilePath#"'>
+		<cfset command = '#ExePath# -i "#arguments.VideoFilePath#" -y -f mp4 -r 29.97 -vcodec libx264 -flags +loop -cmp +chroma -deblock 0:0 -b:v 1250k -maxrate 1500k -bufsize 4M -bt 256k -refs 1 -bf 3 -coder 1 -me_method umh -me_range 16 -subq 7 -partitions +parti4x4+parti8x8+partp8x8+partb8x8 -g 250 -keyint_min 25 -level 30 -qmin 10 -qmax 51 -qcomp 0.6 -trellis 2 -sc_threshold 40 -i_qfactor 0.71 -b_strategy 2 -qdiff 4 -direct-pred 3 -wpredp 2 -rc_lookahead 50 -acodec libvo_aacenc -b:a 112k -ar 48000 -ac 2 "#outputFilePath#"'>
 	</cfcase>
 	<cfcase value="ogg,ogv">
 		<cfif getPlatform().os EQ "Windows">
 			<cfset ExePath = "#Variables.LibraryPath#ffmpeg2theora.exe">
-			<cfset command = '#ExePath# -o #outputFilePath# #arguments.VideoFilePath#'>
+			<cfset command = '#ExePath# -o "#outputFilePath#" "#arguments.VideoFilePath#"'>
 		<cfelse>
-			<cfset command = '#ExePath# -i #arguments.VideoFilePath# -codec:v libtheora -qscale:v 7 -codec:a libvorbis -qscale:a 5 -strict -2 #outputFilePath#'>
+			<cfset command = '#ExePath# -i "#arguments.VideoFilePath#" -codec:v libtheora -qscale:v 7 -codec:a libvorbis -qscale:a 5 -strict -2 "#outputFilePath#"'>
 		</cfif>
 	</cfcase>
 	<cfcase value="swf">
-		<cfset command = '#ExePath# -i #arguments.VideoFilePath# #outputFilePath#'>
+		<cfset command = '#ExePath# -i "#arguments.VideoFilePath#" "#outputFilePath#"'>
 	</cfcase>
 	<cfcase value="webm">
-		<cfset command = '#ExePath# -i #arguments.VideoFilePath# -y -f webm -vcodec libvpx -r 13 -g 120 -level 216 -profile:v 0 -qmax 42 -qmin 10 -rc_buf_aggressivity 0.95 -vb 480k -acodec libvorbis -b:a 96000 -aq 90 -ac 2 "#outputFilePath#"'>
+		<cfset command = '#ExePath# -i "#arguments.VideoFilePath#" -y -f webm -vcodec libvpx -r 13 -g 120 -level 216 -profile:v 0 -qmax 42 -qmin 10 -rc_buf_aggressivity 0.95 -vb 480k -acodec libvorbis -b:a 96000 -aq 90 -ac 2 "#outputFilePath#"'>
 	</cfcase>
 	<cfdefaultcase>
 		<!--- command = '#Variables.LibraryPath#ffmpeg.exe -i "#arguments.VideoFilePath#" -g 300 -y -s qvga -map_meta_data "#outputFilePath#:#arguments.VideoFilePath#" -b:v #bitrate# -b:a #audiobitrate# -r #framerate# -ar 44100 "#outputFilePath#"'; --->
-		<cfset command = '#ExePath# -i #arguments.VideoFilePath# -g 300 -y -b:v #bitrate# -b:a #audiobitrate# -r #framerate# -ar 44100 -strict -2 #outputFilePath#'><!---  -s qvga --->
+		<cfset command = '#ExePath# -i "#arguments.VideoFilePath#" -g 300 -y -b:v #bitrate# -b:a #audiobitrate# -r #framerate# -ar 44100 -strict -2 "#outputFilePath#"'><!---  -s qvga --->
 	</cfdefaultcase>
 	</cfswitch>
 
@@ -140,7 +140,7 @@
 	<!--- <cfset var audiocodec = VideoInfo.AudioCodec> --->
 
 	<cfset Variables.FileMgr.makeFolder(Arguments.Folder)>
-	<cfset Arguments.outputFilePath = Variables.FileMgr.getDirectory(arguments.Folder) & ListFirst(ListLast(getFileFromPath(arguments.VideoFilePath),"/"),".") & "." & arguments.Extension>
+	<cfset Arguments.outputFilePath = Variables.FileMgr.getDirectory(arguments.Folder) & getFilePrefix(arguments.VideoFilePath) & "." & arguments.Extension>
 	<cfset Arguments.outputFilePath = Variables.FileMgr.createUniqueFileName(Arguments.outputFilePath)>
 	<cfset command = getConversionCommand(ArgumentCollection=Arguments)>
 
@@ -291,7 +291,7 @@
 	<cfset var sResults = StructNew()>
 	<cfset var sImageFileInfo = StructNew()>
 	<cfset var result = "">
-	<cfset var ThumbFileName = getFileFromPath(ListDeleteAt(Arguments.VideoFilePath,ListLen(Arguments.VideoFilePath,"."),".") & "." & Arguments.Type)>
+	<cfset var ThumbFileName = getFilePrefix(Arguments.VideoFilePath) & "." & Arguments.Type>
 	<cfset var ExePath = getExecutablePath()>
 
 	<!--- Determine the image path --->
@@ -1063,6 +1063,13 @@ function TrueFalseFormat(value) {
 	return DateDiff("s", "January 1 1970 00:00", datetime);
 </cfscript>
 </cffunction>
+
+<cffunction name="getFilePrefix" access="private" returntype="string" output="no" hint="I return the file name without the extension.">
+	<cfargument name="FileName" type="string" required="yes">
+	
+	<cfreturn Reverse(ListRest(Reverse(getFileFromPath(arguments.FileName)),"."))>
+</cffunction>
+
 <!---
 References:
 http://www.frieswiththat.com.au/post.cfm/coldfusion-ffmpeg-video-conversion-plus-thumbnails
