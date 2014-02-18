@@ -172,8 +172,12 @@
 	</cfif>
 	<cfset ConversionSuccessful = (ConvertedFileSize GT 0)>
 	<cfif NOT ConversionSuccessful>
-		<cfset ErrorMsg = variables.FileMgr.readFile("errors.log","video_converter/logs")>
-		<cfset throwError("The file conversion was unsuccessful. command: #command# RESULT: #listLast(ErrorMsg,chr(10))#")>
+		<cfif ListLast(Arguments.VideoFilePath,".") EQ arguments.Extension>
+			<cffile action="copy" source="#Arguments.VideoFilePath#" destination="#Arguments.outputFilePath#">
+		<cfelse>
+			<cfset ErrorMsg = variables.FileMgr.readFile("errors.log","video_converter/logs")>
+			<cfset throwError("The file conversion was unsuccessful. command: #command# RESULT: #listLast(ErrorMsg,chr(10))#")>
+		</cfif>
 	</cfif>
 
 	<cfreturn Arguments.outputFilePath>
