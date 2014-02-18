@@ -592,8 +592,8 @@ http://ffmpeg.gusari.org/static/
 			><cfif StructKeyExists(sVideos,"jpg")>
 			<img src="#sVideos.jpg#" width="#Arguments.Width#" height="#Arguments.Height#" alt="#Arguments.Title#" title="No video playback capabilities, please download the video below" /></cfif>
 		</object><cfelseif StructKeyExists(sVideos,"mp4")>
-		<object width="#Arguments.Width#" height="#Arguments.Height#" type="application/x-shockwave-flash" data="/f/videos/flashfox.swf">
-			<param name="movie" value="/f/videos/flashfox.swf" />
+		<object width="#Arguments.Width#" height="#Arguments.Height#" type="application/x-shockwave-flash" data="#Variables.VideoPlayerURL#">
+			<param name="movie" value="#Variables.VideoPlayerURL#" />
 			<param name="quality" value="high" />
 			<param name="allowFullScreen" value="true" />
 			<param name="wmode" value="window" />
@@ -604,7 +604,7 @@ http://ffmpeg.gusari.org/static/
 				type="application/x-shockwave-flash"
 				width="#Arguments.Width#"
 				height="#Arguments.Height#"
-				src="/f/videos/flashfox.swf"
+				src="#Variables.VideoPlayerURL#"
 				quality="high"
 				allowFullScreen="true"
 				wmode="window"
