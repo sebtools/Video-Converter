@@ -753,6 +753,78 @@ http://ffmpeg.gusari.org/static/
 	</cfscript>
 </cffunction>
 
+<cffunction name="makeVideoZip" access="public" output="false" returntype="string" hint="I take the given video and make a zip of the HTML and files needed to play the video.">
+	<cfargument name="VideoFilePath" type="string" required="yes" hint="The full path to the source video.">
+	<cfargument name="Folder" type="string" default="videos" hint="The folder in which to place the new video.">
+	<cfargument name="Title" type="string" default="Video">
+	<cfargument name="Controls" type="boolean" default="true">
+	<cfargument name="AutoPlay" type="boolean" default="true">
+	<cfargument name="Width" type="numeric" required="false">
+	<cfargument name="Height" type="numeric" required="false">
+	
+	<cfset var a = clearOldZips()>
+	<cfset var sArgs = StructCopy(Arguments)>
+	<cfset var sVideoInfo = 0>
+	<cfset var VideoHTML = "">
+	<cfset var VideoFiles = convertVideos(Arguments.VideoFilePath,Arguments.Folder)>
+	<cfset var FilesDir = getDirectoryFromPath(ListFirst(VideoFiles))>
+	<cfset var FilePath = "">
+	<cfset var ZipFileName = "#DateFormat(now(),'yyyymmdd')##TimeFormat(now(),'hhmmss')#.zip">
+	<cfset var HTMLFileName = "">
+	
+	<cfset sArgs["VideoFiles"] = ReplaceNoCase(VideoFiles,FilesDir,"videos/","ALL")>
+	
+	<cfif NOT ( StructKeyExists(sArgs,"Width") OR StructKeyExists(sArgs,"Height") )>
+		<cfset sVideoInfo = getVideoInfo(ListFirst(VideoFiles))>
+		<cfif StructKeyExists(sVideoInfo,"Width") AND StructKeyExists(sVideoInfo,"Height")>
+			<cfset sArgs.Width = sVideoInfo.Width>
+			<cfset sArgs.Height = sVideoInfo.Height>
+		</cfif>
+	</cfif>
+	
+	<cfset VideoHTML = VideoHTML & getVideoHTML(ArgumentCollection=sArgs)>
+	
+	<cfset VideoHTML = ReplaceNoCase(VideoHTML,"/f/videos/flashfox.swf","videos/flashfox.swf","ALL")>
+	
+	<cfset VideoHTML = '<!DOCTYPE html>#chr(13)#<html class="no-js">#chr(13)#<head>#chr(13)##chr(9)#<meta charset="utf-8">#chr(13)##chr(9)#<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">#chr(13)##chr(9)#<title>#Arguments.Title#</title>#chr(13)##chr(9)#<meta name="viewport" content="width=device-width">#chr(13)#</head>#chr(13)#<body>#chr(13)##chr(13)#' & VideoHTML>
+	<cfset VideoHTML = VideoHTML & '#chr(13)##chr(13)#</body>#chr(13)#</html>'>
+	
+	<cfset HTMLFileName = ListFirst(getFileFromPath(ListFirst(VideoFiles)),".") & ".html">
+	
+	<cfset Variables.FileMgr.writeFile(HTMLFileName,VideoHTML,'videos')>
+	
+	<cfzip
+		action="zip"
+		file="#Variables.FileMgr.getFilePath(ZipFileName,'videos')#"
+	>
+		<cfloop list="#VideoFiles#" index="FilePath">
+			<cfzipparam source="#FilePath#" entryPath="videos/#getFileFromPath(FilePath)#">
+		</cfloop>
+		<cfzipparam source="#Variables.FileMgr.getFilePath('flashfox.swf','videos')#" entryPath="videos/flashfox.swf">
+		<cfzipparam source="#Variables.FileMgr.getFilePath(HTMLFileName,'videos')#">
+	</cfzip>
+	
+	<cfset Variables.FileMgr.deleteFile(HTMLFileName,"videos")>
+	<cfloop list="#VideoFiles#" index="FilePath">
+		<cfset Variables.FileMgr.deleteFile(getFileFromPath(FilePath),"videos")>
+	</cfloop>
+	
+	<cfreturn Variables.FileMgr.getFileURL(ZipFileName,'videos')>
+</cffunction>
+
+<cffunction name="clearOldZips" access="public" output="false" returntype="void" hint="I remove old zip files from previous runs of makeVideoZip.">
+
+	<cfset var qZipFiles = Variables.FileMgr.getMyDirectoryList(Variables.FileMgr.getDirectory("videos"),"*.zip")>
+	<cfset var DateDeleteBy = DateAdd("n",-10,now())>
+	
+	<cfoutput query="qZipFiles">
+		<cfif DateLastModified LT DateDeleteBy>
+			<cfset Variables.FileMgr.deleteFile(Name,"videos")>
+		</cfif>
+	</cfoutput>
+	
+</cffunction>
+
 <cffunction name="modifyXml" access="public" output="false" returntype="string" hint="I take Manager XML and add definitions for additional video files." todo="steve">
 	<cfargument name="xml" type="string" required="yes" hint="This XML to be modified.">
 	<cfargument name="SourceVideoFile" type="string" required="yes" hint="The original video file.">
