@@ -179,6 +179,29 @@
 	<cfreturn Arguments.outputFilePath>
 </cffunction>
 
+<cffunction name="convertVideos" access="public" returntype="string" output="no" hint="I convert a Video to the requested formats. I return a structure of file names.">
+	<cfargument name="VideoFilePath" type="string" required="yes" hint="The full path to the source video.">
+	<cfargument name="Folder" type="string" required="yes" hint="The folder in which to place the new video.">
+	<cfargument name="Extensions" type="string" default="mp4,ogv,webm" hint="The extensions for the new file.">
+	<cfargument name="writeLogsToFile" type="boolean" default="true">
+	
+	<cfset var ext = "">
+	<cfset var sVideos = StructNew()>
+	<cfset var result = "">
+	
+	<cfloop list="#Arguments.Extensions#" index="ext">
+		<cfset sVideos[ext] = convertVideo(
+			VideoFilePath=Arguments.VideoFilePath,
+			Folder=Arguments.Folder,
+			Extension=ext,
+			writeLogsToFile=Arguments.writeLogsToFile
+		)>
+		<cfset result = ListAppend(result,sVideos[ext])>
+	</cfloop>
+	
+	<cfreturn result>
+</cffunction>
+
 <cffunction name="formatVideos" access="public" returntype="struct" output="no" hint="I reproduce any videos in the needed formats." todo="steve">
 	<cfargument name="Component" type="any" required="yes" hint="The calling component.">
 	<cfargument name="Args" type="struct" required="yes" hint="The incoming arguments to the calling method.">
