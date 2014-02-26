@@ -585,6 +585,9 @@ http://ffmpeg.gusari.org/static/
 	</cfloop>
 
 	<cfset flashvars = "autoplay=#TrueFalseFormat(Arguments.AutoPlay)#&amp;controls=#TrueFalseFormat(Arguments.Controls)#&amp;loop=false">
+	<cfif StructKeyExists(sVideos,"mp4")>
+		<cfset flashvars = "#flashvars#&src=#sVideos.mp4#">
+	</cfif>
 
 	<cfset useVideoElement = ( StructKeyExists(sVideos,"mp4") OR StructKeyExists(sVideos,"webm") OR StructKeyExists(sVideos,"ogg") )>
 
