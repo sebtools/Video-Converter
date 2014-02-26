@@ -595,7 +595,7 @@ http://ffmpeg.gusari.org/static/
 	<!--- http://videojs.com/ --->
 	<!--- first try HTML5 playback: if serving as XML, expand `controls` to `controls="controls"` and autoplay likewise --->
 	<!--- warning: playback does not work on iOS3 if you include the poster attribute! fixed in iOS4.0 --->
-	<cfsavecontent variable="result"><cfoutput><div class="video-js-box"><cfif useVideoElement>
+	<cfsavecontent variable="result"><cfoutput><div class="video-js-box" style="width:#Arguments.Width#px;"><cfif useVideoElement>
 	<video width="#Arguments.Width#" height="#Arguments.Height#"<cfif Arguments.Controls> controls="controls"</cfif><cfif Arguments.AutoPlay> autoplay="autoplay"</cfif>><cfif StructKeyExists(sVideos,"mp4")><!--- MP4 must be first for iPad! --->
 		<source src="#sVideos.mp4#" type="video/mp4" /><!--- Safari / iOS video    ---></cfif><cfif StructKeyExists(sVideos,"webm")>
 		<source src="#sVideos.webm#" type="video/webm" /><!--- Firefox / Opera / Chrome10 ---></cfif><cfif StructKeyExists(sVideos,"ogg")>
